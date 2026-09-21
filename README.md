@@ -18,7 +18,7 @@ OpenDisipline treats these as engineering-control problems. It does not attempt 
 | `slop:empty-catch` | Detect swallowed exceptions | block |
 | `slop:secret` | Detect common credential-shaped material | block in code, warn elsewhere |
 | `slop:debug-residue` | Detect common debug leftovers | warn |
-| `slop:type-ignore` | Detect common type-error suppression | warn |
+| `suppression` | Detect type-checker/linter/analyzer suppression across major language stacks | warn/block |
 | `slop:todo` | Detect TODO/FIXME/HACK markers added to code | warn |
 | `protected-files` | Protect explicitly configured paths | block |
 | `test-integrity` | Detect disabled, vacuous, deleted, or weakened test oracles | warn |
@@ -97,7 +97,7 @@ This roadmap is part of the project. A feature is considered useful only when it
 - [x] Empty exception handling detection
 - [x] Credential-shaped secret detection
 - [x] Debug residue detection
-- [x] Type-error suppression detection
+- [x] Cross-language suppression detection (TypeScript, Python, Kotlin/Java/Android, Go, Rust, C#/.NET, Dart, C/C++ and common linter directives)
 - [x] TODO/FIXME/HACK detection
 - [x] Protected file writes
 - [x] Protected `.env` reads at the tool boundary
