@@ -26,14 +26,15 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
   });
 
   return {
-    "experimental.chat.system.transform": async (input, output) => {
-      if (!config.enabled || !config.context.enabled) return;
-      // V1.18.x does not expose parentID directly in this hook. Avoid the
-      // old heuristic of parsing session IDs: it is not a stable contract.
-      // Users can opt into child-session context when needed.
-      if (!config.context.includeOnSubsessions && input.sessionID) return;
+    "experimental.chat.messages.transform": async (_input, output) => {
+      if (!config.enabled || !config.context.enabled || !output.messages.length) return;
+      const firstUser = output.messages.find((message) => message.info.role === "user");
+      if (!firstUser || !firstUser.parts.length) return;
+      if (firstUser.parts.some((part) => part.type === "text" && part.text.includes("[Open Disipline engineering policy]"))) return;
       const context = buildPolicyContext(config);
-      if (context) output.system.push(context);
+      if (!context) return;
+      const first = firstUser.parts[0];
+      firstUser.parts.unshift({ ...first, type: "text", text: context });
     },
 
     "tool.execute.before": async (input, output) => {
@@ -55,6 +56,7 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
     "command.execute.before": async (input) => {
       if (!config.enabled) return;
       for (const guard of commandPatterns) {
+        guard.regex.lastIndex = 0;
         if (!guard.regex.test(input.command)) continue;
         const message = "[open-disipline] " + (config.mode === "strict" ? "BLOCK" : "WARN") + ": command matches configured guard: " + guard.source;
         if (config.mode === "strict") throw new Error(message);
@@ -63,12 +65,11 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
     },
 
     "permission.ask": async (input, output) => {
-      if (!config.enabled || !config.readProtection.enabled) return;
-      if (input.type !== "read") return;
-      const pattern = typeof input.patterns?.[0] === "string" ? input.patterns[0] : "";
-      if (!pattern || !matchesPath(pattern, config.readProtection.paths) || matchesPath(pattern, config.readProtection.allowPaths)) return;
+      if (!config.enabled || !config.readProtection.enabled || input.permission !== "read") return;
+      const path = input.patterns.find((pattern) => typeof pattern === "string") ?? "";
+      if (!path || !matchesPath(path, config.readProtection.paths) || matchesPath(path, config.readProtection.allowPaths)) return;
       output.status = "deny";
-      try { await client.app.log({ body: { service: "open-disipline", level: "warn", message: "Blocked protected-file read", extra: { path: pattern } } }); } catch {}
+      try { await client.app.log({ body: { service: "open-disipline", level: "warn", message: "Blocked protected-file read", extra: { path } } }); } catch {}
     },
   };
 };
