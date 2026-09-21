@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { OpenDisipline } from "../src/index.ts";
 import { parseApplyPatch } from "../src/scanners/patch.ts";
 import { testIntegrityRule } from "../src/rules/changes.ts";
+import { suppressionRule } from "../src/rules/suppressions.ts";
+import { mergeConfig } from "../src/config.ts";
 import { mergeConfig } from "../src/config.ts";
 
 async function plugin() {
@@ -95,4 +97,23 @@ test("test integrity catches vacuous assertions", () => {
     config,
   });
   assert.ok(findings.some((x) => x.message.includes("vacuous")));
+});
+
+
+test("suppression guard covers major language families", () => {
+  const config = mergeConfig({ mode: "strict" });
+  const cases = [
+    ["src/a.ts", "// @ts-nocheck"],
+    ["src/a.py", "# type: ignore"],
+    ["src/a.kt", "@Suppress(\"UNUSED\")"],
+    ["src/a.java", "@SuppressLint(\"NewApi\")"],
+    ["src/a.go", "//nolint:errcheck"],
+    ["src/a.rs", "#[allow(dead_code)]"],
+    ["src/a.cs", "#pragma warning disable"],
+    ["lib/a.dart", "// ignore_for_file: unused_import"],
+  ] as const;
+  for (const [filePath, addedText] of cases) {
+    const findings = suppressionRule.check({ filePath, addedText, config });
+    assert.ok(findings.length > 0, `expected suppression detection for ${filePath}`);
+  }
 });
