@@ -4,6 +4,12 @@ A focused OpenCode V1 engineering-discipline plugin. It combines low-noise polic
 
 The project is intentionally conservative: it prefers a useful warning over speculative blocking, and a small reliable rule over a large heuristic system.
 
+## What it is designed to stop
+
+Agentic coding failures are often not syntax failures. The recurring problems are scope drift, test gaming, swallowed errors, secret leakage, unsafe reads, speculative refactors, repeated failed attempts, and declaring a task complete without sufficient evidence.
+
+OpenDisipline treats these as engineering-control problems. It does not attempt to judge whether an entire implementation is semantically correct with regexes. Instead, it blocks or warns on observable evidence and requires stronger evidence as the project matures.
+
 ## Guardrails
 
 | Rule | Purpose | Default |
@@ -15,28 +21,134 @@ The project is intentionally conservative: it prefers a useful warning over spec
 | `slop:type-ignore` | Detect common type-error suppression | warn |
 | `slop:todo` | Detect TODO/FIXME/HACK markers added to code | warn |
 | `protected-files` | Protect explicitly configured paths | block |
-| `test-integrity` | Detect skip/only/disabled test changes | warn |
-| `change-surface` | Keep a single tool operation from exploding into a large file set | warn/block |
+| `test-integrity` | Detect disabled, vacuous, deleted, or weakened test oracles | warn |
+| `test-evidence` | Flag behavior/code changes with no test-file change | warn |
+| `change-surface` | Keep a single tool operation from exploding into a large guarded file set | warn/block |
 | command guards | Optional repository-specific command regexes | opt-in |
-| protected reads | Deny reads of `.env`-style files through OpenCode permission requests | enabled |
+| protected reads | Protect `.env`-style reads at the tool boundary | enabled |
+| guardrail integrity | Prevent agent writes to the plugin's own rules/configuration | enabled |
 
 ## Design
 
-OpenDisipline has two separate paths:
+OpenDisipline has two paths:
 
-1. Context guidance: a short policy is injected into the first user message and is idempotent, so it is not repeatedly appended on every model step.
-2. Enforcement: `tool.execute.before`, `command.execute.before`, and `permission.ask` perform deterministic checks before consequential operations.
+1. Context guidance: a short policy is injected into the first user message and is idempotent.
+2. Enforcement: deterministic checks run before consequential tool operations.
 
-The enforcement path is deliberately local and offline.
+The enforcement path is local and offline. It does not send source code, prompts, secrets, or telemetry to an external service.
 
-## OpenCode V1
+The important design rule is:
 
-The plugin targets OpenCode V1 and is tested against the V1 plugin API package `1.18.30`.
-Do not replace the pinned plugin dependency with `latest`.
+> Instructions tell the agent what should happen. Tool-boundary enforcement controls what the agent is allowed to do.
+
+## Anti-bypass model
+
+OpenDisipline does not treat an agent's proposed workaround as a valid fix.
+
+When a guard rejects a change, the intended response is to change the implementation so the evidence that triggered the guard disappears for a legitimate reason.
+
+The plugin also protects its own core implementation/configuration paths from normal agent write/edit/apply-patch operations:
+
+- `discipline.config.json`
+- `src/index.ts`
+- `src/config.ts`
+- `src/core/**`
+- `src/rules/**`
+- `src/scanners/**`
+- `.opencode/plugins/open-disipline.ts`
+
+This is deliberately stronger than asking the model not to modify the guard.
+
+This does not claim to be a perfect security boundary against every possible shell, host, subagent, or OpenCode implementation bypass. OpenCode hook behavior remains part of the trust boundary.
+
+## Fix correctly, not merely make the test green
+
+A green test suite is not treated as sufficient evidence by itself.
+
+The integrity layer detects several common ways an agent can manufacture green tests:
+
+- `.skip()`, `.only()`, `xit`, `xdescribe`, `@Ignore`, `@Disabled`, and similar test suppression;
+- vacuous assertions such as asserting `true`;
+- removal of existing assertion/oracle lines from patches;
+- deletion of test files;
+- code changes with no corresponding test-file change.
+
+The last item is a warning rather than an automatic failure because some legitimate implementation changes do not require new tests. The intended workflow is:
+
+```text
+failure
+  -> identify behavior
+  -> change implementation
+  -> add/update regression coverage
+  -> run relevant validation
+  -> inspect scope
+  -> complete only with evidence
+```
+
+OpenDisipline cannot prove semantic correctness from source text alone. It deliberately reports this boundary instead of pretending that a regex can prove a bug is fixed.
+
+## Agentic failure roadmap
+
+This roadmap is part of the project. A feature is considered useful only when it reduces a recurring failure mode without creating disproportionate false positives.
+
+### Implemented
+
+- [x] Domain-first naming / anti-brand-slop
+- [x] Empty exception handling detection
+- [x] Credential-shaped secret detection
+- [x] Debug residue detection
+- [x] Type-error suppression detection
+- [x] TODO/FIXME/HACK detection
+- [x] Protected file writes
+- [x] Protected `.env` reads at the tool boundary
+- [x] Test skip/focus detection
+- [x] Vacuous assertion detection
+- [x] Removed-test-oracle detection from patches
+- [x] Test-file deletion warning
+- [x] Regression-evidence warning for code changes without test changes
+- [x] Change-surface guard
+- [x] Guardrail self-protection
+- [x] Idempotent policy context
+- [x] Global + project configuration merging
+- [x] Command guard precompilation
+
+### Next priority
+
+- [ ] Completion-evidence gate: require explicit validation evidence before an agent can reasonably claim a task is complete.
+- [ ] Failure-loop breaker: detect repeated attempts against the same failing validation without meaningful progress.
+- [ ] Dependency-truth guard: detect guessed/nonexistent package APIs or version assumptions before they become implementation churn.
+- [ ] Dependency-change guard: flag unnecessary new dependencies and suspicious dependency changes.
+- [ ] Scope/intent ledger: compare the requested task surface with the actual changed surface instead of relying only on file-count thresholds.
+- [ ] Root-cause/fix evidence: connect a reported failure to a regression test and the implementation change that addresses it.
+- [ ] Safer shell/destructive-command guard: protect high-risk file operations and guardrail paths when commands are used instead of file tools.
+- [ ] Subagent enforcement verification: test whether the target OpenCode V1 host consistently applies the same guardrails to child sessions.
+- [ ] Compatibility matrix: test the plugin against multiple OpenCode V1 releases instead of using one release as the only runtime assumption.
+
+### Deliberately not planned
+
+- [ ] Full semantic code correctness through regexes.
+- [ ] Autonomous architecture judgement.
+- [ ] Blocking every TODO or every refactor.
+- [ ] Network-based source analysis in the enforcement hot path.
+- [ ] V2 lifecycle APIs in the V1 plugin.
+- [ ] A giant collection of heuristic rules with unclear false-positive behavior.
+
+## OpenCode V1 compatibility
+
+The runtime design is capability-oriented, not intended to be locked to one exact V1 patch release.
+
+`@opencode-ai/plugin@1.18.30` is the development/typecheck baseline currently used by this repository. It is not intended to mean that the runtime requires exactly 1.18.30.
+
+Core enforcement relies on the V1 `tool.execute.before` boundary. Optional hooks such as context transformation and permission handling are supplementary; the plugin should remain useful if an optional hook is unavailable or behaves differently in a particular V1 host.
+
+The project is V1-only. Do not add V2 lifecycle APIs.
+
+Before declaring a historical V1 release supported, test the actual host behavior. SDK type compatibility alone is not sufficient evidence of host-hook compatibility.
 
 ## Configuration
 
 Project configuration lives in `discipline.config.json`. A global configuration can be placed at `~/.config/opencode/discipline.config.json`.
+
 Project configuration is merged over global configuration, including nested sections.
 
 The naming rule can automatically derive a brand from `package.json`. Generic project names such as `app`, `server`, `project`, and `web` are ignored to avoid accidental false positives.
@@ -49,6 +161,10 @@ Example:
   "brands": ["Acme"],
   "autoBrands": true,
   "protectedPaths": ["src/generated/**"],
+  "testEvidence": {
+    "enabled": true,
+    "severity": "warn"
+  },
   "changeSurface": {
     "warnAt": 25,
     "blockAt": 100
@@ -56,13 +172,17 @@ Example:
 }
 ```
 
-Use `advisory` mode during rollout when you want diagnostics without blocking writes.
+Use `advisory` mode during rollout when you want diagnostics without blocking writes. Note that guardrail integrity paths remain protected because disabling the policy from inside the guarded project would defeat the purpose of the integrity layer.
 
 ## Why the plugin is conservative
 
-Agentic coding failures are often caused by overreach rather than syntax errors: unnecessary refactors, weakened tests, secret leakage, debug residue, unsafe reads, and changes that become much larger than the original task.
+False positives destroy trust in a guardrail. OpenDisipline therefore prefers:
 
-OpenDisipline does not try to judge the entire design of a change. It enforces small, observable invariants at the tool boundary and leaves deeper semantic review to the agent, tests, linters, code review, and repository-specific tooling.
+- BLOCK when the evidence is strong and the operation is clearly unsafe;
+- WARN when context is ambiguous;
+- explicit configuration for legitimate exceptions;
+- small local checks instead of broad repository analysis;
+- evidence-based completion instead of claims of correctness.
 
 ## Development
 
@@ -79,8 +199,11 @@ The runtime plugin has no network service and no telemetry requirement.
 Add a `DisciplineRule` under `src/rules/`, keep it deterministic, register it in `src/index.ts`, and add both positive and negative tests.
 
 A new rule should explain:
+
 - evidence it examines;
 - why that evidence is reliable;
 - BLOCK versus WARN semantics;
 - false-positive expectations;
-- how legitimate exceptions are configured.
+- how legitimate exceptions are configured;
+- how an agent could otherwise bypass it;
+- what evidence demonstrates that the rule itself works.
