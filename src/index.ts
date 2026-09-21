@@ -32,6 +32,7 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
   registry.register(slopRule);
   registry.register(testIntegrityRule);
   registry.register(testEvidenceRule);
+  registry.register(suppressionRule);
   registry.register(changeSurfaceRule);
 
   const commandPatterns = config.commandGuards.flatMap((source) => {
