@@ -7,7 +7,7 @@ import { slopRule } from "./rules/slop.ts";
 import { protectedFilesRule } from "./rules/files.ts";
 import { changeSurfaceRule, testIntegrityRule } from "./rules/changes.ts";
 import { extractChanges } from "./scanners/patch.ts";
-import { matchesPath } from "./scanners/paths.ts";
+import { matchesPath, normalizePath } from "./scanners/paths.ts";
 
 const FILE_TOOLS = new Set(["write", "edit", "apply_patch"]);
 
@@ -46,11 +46,24 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
       if (!config.enabled || !FILE_TOOLS.has(input.tool)) return;
       const changes = extractChanges(input.tool, output.args as Record<string, unknown>);
       if (!changes.length) return;
-      const files = [...new Set(changes.map((change) => change.filePath))];
+      const guarded = changes.filter((change) => !matchesPath(change.filePath, config.allow.paths));
+      const files = [...new Set(guarded.map((change) => normalizePath(change.filePath)))];
+      const testFiles = files.filter((file) => config.testIntegrity.paths.some((pattern) => matchesPath(file, [pattern])));
+      const codeFiles = files.filter((file) => config.codeFileExtensions.includes(file.slice(file.lastIndexOf("."))));
       const findings = [];
-      for (const change of changes) {
-        if (matchesPath(change.filePath, config.allow.paths)) continue;
-        findings.push(...registry.runAll({ filePath: change.filePath, addedText: change.addedText, config, changeFiles: files }));
+      for (let index = 0; index < guarded.length; index++) {
+        const change = guarded[index]!;
+        findings.push(...registry.runAll({
+          filePath: change.filePath,
+          addedText: change.addedText,
+          removedText: change.removedText,
+          deleted: change.deleted,
+          config,
+          changeFiles: files,
+          testFiles,
+          codeFiles,
+          changeIndex: index,
+        }));
       }
       const blocking = findings.filter((finding) => finding.severity === "block");
       const warnings = findings.filter((finding) => finding.severity === "warn");
