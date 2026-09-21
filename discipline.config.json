@@ -4,76 +4,42 @@
   "brands": [],
   "autoBrands": true,
   "caseSensitive": false,
-
   "context": {
     "enabled": true,
     "includeOnSubsessions": false,
     "maxCharacters": 3500
   },
-
   "allow": {
     "identifiers": [],
     "patterns": [
       "^[A-Za-z][A-Za-z0-9+.-]*://",
       "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){2,}$"
     ],
-    "paths": [
-      "node_modules/**",
-      "dist/**",
-      "build/**",
-      ".git/**",
-      "vendor/**",
-      "generated/**"
-    ],
-    "suffixes": ["SDK", "API", "CLI"]
+    "paths": ["node_modules/**","dist/**","build/**",".git/**","vendor/**","generated/**"],
+    "suffixes": ["SDK","API","CLI"]
   },
-
   "warn": {
     "patterns": [],
-    "ambiguousSuffixes": [
-      "Client",
-      "Manager",
-      "Service",
-      "Handler",
-      "Helper",
-      "Wrapper",
-      "Adapter"
-    ]
+    "ambiguousSuffixes": ["Client","Manager","Service","Handler","Helper","Wrapper","Adapter"]
   },
-
-  "block": {
-    "patterns": []
-  },
-
+  "block": { "patterns": [] },
   "protectedPaths": [],
-
   "commandGuards": [],
-
   "readProtection": {
     "enabled": true,
-    "paths": [".env", ".env.*", "**/.env", "**/.env.*"],
-    "allowPaths": [
-      ".env.example",
-      ".env.sample",
-      ".env.template",
-      "**/.env.example",
-      "**/.env.sample",
-      "**/.env.template"
-    ]
+    "paths": [".env",".env.*","**/.env","**/.env.*"],
+    "allowPaths": [".env.example",".env.sample",".env.template","**/.env.example","**/.env.sample","**/.env.template"]
   },
-
   "testIntegrity": {
     "enabled": true,
     "severity": "warn",
-    "paths": [
-      "tests/**",
-      "test/**",
-      "**/*.test.*",
-      "**/*.spec.*",
-      "**/__tests__/**"
-    ]
+    "paths": ["tests/**","test/**","**/*.test.*","**/*.spec.*","**/__tests__/**"]
   },
-
+  "testEvidence": {
+    "enabled": true,
+    "severity": "warn",
+    "paths": ["tests/**","test/**","**/*.test.*","**/*.spec.*","**/__tests__/**"]
+  },
   "changeSurface": {
     "enabled": true,
     "warnAt": 25,
