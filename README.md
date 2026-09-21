@@ -1,62 +1,86 @@
 # open-disipline
 
-An opencode V1 plugin that enforces engineering discipline the deterministic way — it inspects every write/edit and blocks or warns instead of merely asking politely. Built from real agentic-AI failure patterns (silent errors, debug leftovers, committed secrets, brand-prefix slop).
+A focused OpenCode V1 engineering-discipline plugin. It combines low-noise policy context with deterministic tool-boundary guardrails.
 
-## What it does
+The project is intentionally conservative: it prefers a useful warning over speculative blocking, and a small reliable rule over a large heuristic system.
 
-Scans each proposed file write for a small set of near-zero-false-positive patterns and injects a naming policy into the session context:
+## Guardrails
 
-| Rule | Fires on | Severity |
-|------|----------|----------|
-| `slop:empty-catch` | Empty `catch {}` / `except: pass` (silent failures) | block |
-| `slop:secret` | Credential-shaped strings (`sk-…`, `AKIA…`, `ghp_…`, `xoxb-…`, `AIza…`) | block in code, warn in config/env/rules/docs |
-| `slop:debug-residue` | `console.log`, `print(`, `debugger`, `breakpoint()` | warn |
-| `slop:type-ignore` | `# type: ignore`, `@ts-ignore`, `cast<Any>` | warn |
-| `slop:todo` | TODO/FIXME shipped with the change | warn |
-| `naming` | Brand-prefixed identifiers without domain meaning (e.g. `AcmeDashboardViewModel`) | block/warn |
-| `protected-files` | Writes touching `protectedPaths` | block/warn |
+| Rule | Purpose | Default |
+|---|---|---|
+| `naming` | Reject unnecessary product/company/project prefixes in internal identifiers | block/warn |
+| `slop:empty-catch` | Detect swallowed exceptions | block |
+| `slop:secret` | Detect common credential-shaped material | block in code, warn elsewhere |
+| `slop:debug-residue` | Detect common debug leftovers | warn |
+| `slop:type-ignore` | Detect common type-error suppression | warn |
+| `slop:todo` | Detect TODO/FIXME/HACK markers added to code | warn |
+| `protected-files` | Protect explicitly configured paths | block |
+| `test-integrity` | Detect skip/only/disabled test changes | warn |
+| `change-surface` | Keep a single tool operation from exploding into a large file set | warn/block |
+| command guards | Optional repository-specific command regexes | opt-in |
+| protected reads | Deny reads of `.env`-style files through OpenCode permission requests | enabled |
 
-Supports `.ts/.tsx/.js/.jsx/.mjs/.cjs/.go/.py/.kt`. Blocked writes throw in `tool.execute.before`; the agent must fix the code instead of bypassing the guard.
+## Design
 
-## Install
+OpenDisipline has two separate paths:
 
-```jsonc
-// ~/.config/opencode/opencode.json
+1. Context guidance: a short policy is injected into the first user message and is idempotent, so it is not repeatedly appended on every model step.
+2. Enforcement: `tool.execute.before`, `command.execute.before`, and `permission.ask` perform deterministic checks before consequential operations.
+
+The enforcement path is deliberately local and offline.
+
+## OpenCode V1
+
+The plugin targets OpenCode V1 and is tested against the V1 plugin API package `1.18.30`.
+Do not replace the pinned plugin dependency with `latest`.
+
+## Configuration
+
+Project configuration lives in `discipline.config.json`. A global configuration can be placed at `~/.config/opencode/discipline.config.json`.
+Project configuration is merged over global configuration, including nested sections.
+
+The naming rule can automatically derive a brand from `package.json`. Generic project names such as `app`, `server`, `project`, and `web` are ignored to avoid accidental false positives.
+
+Example:
+
+```json
 {
-  "plugin": [
-    "file:///abs/path/to/open-disipline/.opencode/plugins/open-disipline.ts"
-  ]
+  "mode": "strict",
+  "brands": ["Acme"],
+  "autoBrands": true,
+  "protectedPaths": ["src/generated/**"],
+  "changeSurface": {
+    "warnAt": 25,
+    "blockAt": 100
+  }
 }
 ```
 
-Zero configuration: project brands are auto-detected from `package.json` name (or the directory name). Restart opencode.
+Use `advisory` mode during rollout when you want diagnostics without blocking writes.
 
-## Optional config
+## Why the plugin is conservative
 
-Write once in `~/.config/opencode/discipline.config.json` (base) or per-project `discipline.config.json` (overrides key-by-key):
+Agentic coding failures are often caused by overreach rather than syntax errors: unnecessary refactors, weakened tests, secret leakage, debug residue, unsafe reads, and changes that become much larger than the original task.
 
-```jsonc
-{
-  "mode": "strict",          // strict = block; advisory = downgrade blocks to warnings
-  "brands": ["YourBrand"],   // extra brands; auto-detection stays on unless disabled
-  "autoBrands": true,        // false to disable project-name auto-detection
-  "protectedPaths": ["src/important/**"],
-  "commandGuards": ["rm\\s+-rf", "git\\s+push\\s+--force"]
-}
-```
-
-`commandGuards` blocks shell commands matching a regex (strict mode) — useful for destructive or exfil-tending commands.
+OpenDisipline does not try to judge the entire design of a change. It enforces small, observable invariants at the tool boundary and leaves deeper semantic review to the agent, tests, linters, code review, and repository-specific tooling.
 
 ## Development
 
 ```sh
-npm install        # dev deps only (typecheck/tests); runtime is type-only
-npm test           # node:test, no framework
+npm install
+npm test
 npm run typecheck
 ```
 
-## Design notes
+The runtime plugin has no network service and no telemetry requirement.
 
-- Type-only import of `@opencode-ai/plugin` → no runtime SDK dependency, survives opencode V1 updates.
-- *Not* a replacement for `.gitignore`, `.env` hygiene, or a pre-commit secret scanner (e.g. gitleaks) — it guards writes, not pre-existing files.
-- Lint-level concerns (duplicate functions, gratuitous abstractions, unused imports) are out of scope for a diff hook; leave those to linters and review.
+## Adding a rule
+
+Add a `DisciplineRule` under `src/rules/`, keep it deterministic, register it in `src/index.ts`, and add both positive and negative tests.
+
+A new rule should explain:
+- evidence it examines;
+- why that evidence is reliable;
+- BLOCK versus WARN semantics;
+- false-positive expectations;
+- how legitimate exceptions are configured.
