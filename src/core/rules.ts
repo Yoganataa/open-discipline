@@ -1,5 +1,15 @@
 import type { NamingDisciplineConfig, Severity } from "../config.ts";
-export interface RuleContext { filePath:string; addedText:string; config:NamingDisciplineConfig; changeFiles?:string[]; }
+export interface RuleContext {
+  filePath:string;
+  addedText:string;
+  removedText?:string;
+  deleted?:boolean;
+  config:NamingDisciplineConfig;
+  changeFiles?:string[];
+  testFiles?:string[];
+  codeFiles?:string[];
+  changeIndex?:number;
+}
 export interface RuleFinding { rule:string; severity:Severity; message:string; }
 export interface DisciplineRule { id:string; check(ctx:RuleContext):RuleFinding[]; }
 export class RuleRegistry {
