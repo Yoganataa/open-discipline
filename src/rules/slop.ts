@@ -39,13 +39,6 @@ const PATTERNS: SlopPattern[] = [
     re: /\b(?:console\.(?:log|debug|trace)\(|debugger\b|breakpoint\(|print(?:ln)?\()/,
   },
   {
-    id: "type-ignore",
-    severity: "warn",
-    label: "Type error silenced",
-    reason: "# type: ignore / @ts-ignore / cast<Any> hides the real type problem instead of fixing it.",
-    re: /#\s*type:\s*ignore|@ts-(?:ignore|nocheck)|\bcast\s*<\s*any\s*>/i,
-  },
-  {
     id: "todo",
     severity: "warn",
     label: "TODO/FIXME shipped with the change",
