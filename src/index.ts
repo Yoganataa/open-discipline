@@ -33,8 +33,13 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
       if (firstUser.parts.some((part) => part.type === "text" && part.text.includes("[Open Disipline engineering policy]"))) return;
       const context = buildPolicyContext(config);
       if (!context) return;
-      const first = firstUser.parts[0];
-      firstUser.parts.unshift({ ...first, type: "text", text: context });
+      const firstText = firstUser.parts.find((part) => part.type === "text");
+      if (!firstText) return;
+
+      firstUser.parts.unshift({
+        ...firstText,
+        text: context,
+      });
     },
 
     "tool.execute.before": async (input, output) => {
@@ -65,9 +70,17 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
     },
 
     "permission.ask": async (input, output) => {
-      if (!config.enabled || !config.readProtection.enabled || input.permission !== "read") return;
-      const path = input.patterns.find((pattern) => typeof pattern === "string") ?? "";
-      if (!path || !matchesPath(path, config.readProtection.paths) || matchesPath(path, config.readProtection.allowPaths)) return;
+      if (!config.enabled || !config.readProtection.enabled || input.type !== "read") return;
+
+      const path = typeof input.pattern === "string" ? input.pattern : "";
+
+      if (
+        !path ||
+        !matchesPath(path, config.readProtection.paths) ||
+        matchesPath(path, config.readProtection.allowPaths)
+      ) {
+        return;
+      }
       output.status = "deny";
       try { await client.app.log({ body: { service: "open-disipline", level: "warn", message: "Blocked protected-file read", extra: { path } } }); } catch {}
     },
