@@ -1,0 +1,76 @@
+# OpenDisipline Engineering Policy
+
+OpenDisipline is a deterministic guardrail for agent-driven development. Keep the implementation small, predictable, and low-noise.
+
+## Core principles
+
+- Prefer deterministic checks over model-dependent judgments.
+- Block only when evidence is strong.
+- Warn when context is ambiguous.
+- Never hide a failure merely to keep a tool call moving.
+- Do not make unrelated refactors while changing a guard.
+- Keep OpenCode V1 compatibility explicit; do not add V2 APIs.
+
+## Naming
+
+Internal technical names should describe domain responsibility, not product ownership.
+
+Do not mechanically add a product/company/project prefix:
+
+`AcmeUserRepository` -> `UserRepository`
+
+Branding is allowed at real boundaries such as protocol identifiers, package coordinates, SDK/API names, published integrations, and user-facing identity.
+
+When a collision exists, use the smallest semantic qualifier that explains the distinction.
+
+## Guard design
+
+Every new rule must define:
+
+1. What evidence it examines.
+2. Why that evidence is reliable.
+3. What constitutes BLOCK versus WARN.
+4. Its expected false-positive behavior.
+5. An explicit escape hatch for legitimate exceptions.
+6. Unit tests for both the violation and the non-violation.
+
+Rules should be independent and registered through the rule registry.
+
+## Scope discipline
+
+Avoid broad repository scans in hot hooks.
+
+Prefer:
+
+- changed files;
+- added/edited text;
+- configured paths;
+- cached compiled matchers.
+
+Do not add network requests to the enforcement path.
+
+## Security
+
+Protected files and destructive commands should fail closed only when the configured rule has high confidence.
+
+Do not print secrets or complete sensitive file contents in diagnostics.
+
+## Validation
+
+A change to a rule is not complete until:
+
+- unit tests cover the rule;
+- false-positive cases are covered;
+- typecheck passes;
+- the plugin remains loadable under OpenCode V1;
+- documentation matches the actual configuration.
+
+## Compatibility
+
+The supported host target is OpenCode V1. Pin the plugin API dependency to the tested V1 release.
+
+Do not use undocumented V2 lifecycle APIs.
+
+## Change policy
+
+Do not expand the guard surface merely because a pattern is theoretically possible. Add a rule when it materially reduces a recurring agent failure mode without creating disproportionate friction.
