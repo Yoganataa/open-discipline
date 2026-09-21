@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { OpenDisipline } from "../src/index.ts";
+import { parseApplyPatch } from "../src/scanners/patch.ts";
+import { testIntegrityRule } from "../src/rules/changes.ts";
+import { mergeConfig } from "../src/config.ts";
 
 async function plugin() {
   return OpenDisipline({
@@ -34,10 +37,62 @@ test("blocks violating write", async () => {
   );
 });
 
-test("allows protected example env files", async () => {
+test("blocks protected reads at the tool boundary", async () => {
+  const p = await plugin();
+  const h = p["tool.execute.before"]!;
+  await assert.rejects(
+    () => h(
+      { tool: "read", sessionID: "s", callID: "c" },
+      { args: { filePath: ".env" } },
+    ),
+    /protected-file read/,
+  );
+});
+
+test("permission hook uses current V1 read shape", async () => {
   const p = await plugin();
   const h = p["permission.ask"]!;
   const output = { status: "ask" as "ask" | "deny" | "allow" };
-  await h({ permission: "read", patterns: [".env.example"], sessionID: "s", id: "per_test", metadata: {}, always: [] } as never, output);
+  await h({ type: "read", pattern: ".env.example", sessionID: "s", id: "per_test", metadata: {}, always: [] } as never, output);
   assert.equal(output.status, "ask");
+});
+
+test("retains removed patch text for integrity checks", () => {
+  const changes = parseApplyPatch([
+    "*** Update File: tests/example.test.ts",
+    "@@",
+    "-expect(result).toEqual(expected)",
+    "+expect(result).toBeDefined()",
+  ].join("\n"));
+  assert.equal(changes[0]?.removedText, "expect(result).toEqual(expected)");
+});
+
+test("test integrity catches removed assertions and test deletion", () => {
+  const config = mergeConfig({ mode: "strict", testIntegrity: { enabled: true, severity: "warn", paths: ["tests/**"] } });
+  const findings = testIntegrityRule.check({
+    filePath: "tests/example.test.ts",
+    addedText: "expect(result).toBeDefined()",
+    removedText: "expect(result).toEqual(expected)",
+    config,
+    deleted: false,
+  });
+  assert.ok(findings.some((x) => x.message.includes("removed")));
+  const deletion = testIntegrityRule.check({
+    filePath: "tests/example.test.ts",
+    addedText: "",
+    removedText: "",
+    config,
+    deleted: true,
+  });
+  assert.ok(deletion.some((x) => x.message.includes("deleted")));
+});
+
+test("test integrity catches vacuous assertions", () => {
+  const config = mergeConfig({ mode: "strict", testIntegrity: { enabled: true, severity: "warn", paths: ["tests/**"] } });
+  const findings = testIntegrityRule.check({
+    filePath: "tests/example.test.ts",
+    addedText: "expect(true).toBe(true)",
+    config,
+  });
+  assert.ok(findings.some((x) => x.message.includes("vacuous")));
 });
