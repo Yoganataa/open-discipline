@@ -1,0 +1,10 @@
+import test from "node:test";import assert from "node:assert/strict";import{mergeConfig}from"../src/config.ts";import{classifyIdentifier}from"../src/rules/naming.ts";const c=mergeConfig({brands:["Acme"]});const s=(x:string)=>classifyIdentifier(x,c)?.severity??"allow";
+test("blocks compound branded names",()=>{assert.equal(s("AcmeDashboardViewModel"),"block");assert.equal(s("AcmeUserRepository"),"block");assert.equal(s("AcmeSettingsService"),"block");});
+test("warns ambiguous roles",()=>{assert.equal(s("AcmeClient"),"warn");assert.equal(s("AcmeManager"),"warn");});
+test("allows semantic names",()=>{assert.equal(s("ServerSettings"),"allow");assert.equal(s("UserRepository"),"allow");});
+test("allows configured boundary suffixes",()=>{assert.equal(s("AcmeSDK"),"allow");assert.equal(s("AcmeAPI"),"allow");});
+test("allows protocol and reverse-domain identifiers",()=>{assert.equal(s("acme://pair"),"allow");assert.equal(s("com.acme.app"),"allow");});
+test("supports multiple brands",()=>{const x=mergeConfig({brands:["Acme","Globex"]});assert.equal(classifyIdentifier("GlobexUserRepository",x)?.severity,"block");});
+test("does not match substrings",()=>{assert.equal(s("AcmeologyService"),"allow");});
+test("case insensitive by default",()=>{assert.equal(s("acmeUserRepository"),"block");});
+test("case sensitive mode",()=>{const x=mergeConfig({brands:["Acme"],caseSensitive:true});assert.equal(classifyIdentifier("acmeUserRepository",x),null);});
