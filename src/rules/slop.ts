@@ -62,6 +62,8 @@ export const slopRule: DisciplineRule = {
     const isCode = ctx.config.codeFileExtensions.includes(ext);
     const findings: RuleFinding[] = [];
     for (const p of PATTERNS) {
+      // Secrets live in string literals, so keep the raw source for this rule.
+      // The other patterns intentionally remain text-based and conservative.
       if (!p.re.test(ctx.addedText)) continue;
       // Non-code files (config/.env/rules/docs) legitimately hold secrets in
       // dev, so only the secret pattern applies there — and it warns instead of
