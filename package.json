@@ -1,8 +1,8 @@
 {
   "name": "open-disipline",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "OpenCode V1 engineering-discipline plugin with context guidance and deterministic enforcement.",
+  "description": "OpenCode V1 engineering-discipline plugin with deterministic guardrails and low-noise agent context.",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "^1.18.30",
+    "@opencode-ai/plugin": "1.18.30",
     "@types/node": "^24.0.0",
     "typescript": "^5.6.0"
   }
