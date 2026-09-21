@@ -5,7 +5,7 @@ import { RuleRegistry } from "./core/rules.ts";
 import { namingRule } from "./rules/naming.ts";
 import { slopRule } from "./rules/slop.ts";
 import { protectedFilesRule } from "./rules/files.ts";
-import { changeSurfaceRule, testIntegrityRule } from "./rules/changes.ts";
+import { changeSurfaceRule, testIntegrityRule, testEvidenceRule } from "./rules/changes.ts";
 import { extractChanges } from "./scanners/patch.ts";
 import { matchesPath, normalizePath } from "./scanners/paths.ts";
 
@@ -31,6 +31,7 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
   registry.register(namingRule);
   registry.register(slopRule);
   registry.register(testIntegrityRule);
+  registry.register(testEvidenceRule);
   registry.register(changeSurfaceRule);
 
   const commandPatterns = config.commandGuards.flatMap((source) => {
