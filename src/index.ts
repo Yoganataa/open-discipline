@@ -10,6 +10,19 @@ import { extractChanges } from "./scanners/patch.ts";
 import { matchesPath, normalizePath } from "./scanners/paths.ts";
 
 const FILE_TOOLS = new Set(["write", "edit", "apply_patch"]);
+const CORE_INTEGRITY_PATHS = [
+  "discipline.config.json",
+  "src/index.ts",
+  "src/config.ts",
+  "src/core/**",
+  "src/rules/**",
+  "src/scanners/**",
+  ".opencode/plugins/open-disipline.ts",
+];
+
+function isCoreIntegrityPath(path: string): boolean {
+  return matchesPath(path, CORE_INTEGRITY_PATHS);
+}
 
 export const OpenDisipline: Plugin = async ({ directory, client }) => {
   const config: NamingDisciplineConfig = await loadConfig(directory);
@@ -47,6 +60,10 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
       const changes = extractChanges(input.tool, output.args as Record<string, unknown>);
       if (!changes.length) return;
       const guarded = changes.filter((change) => !matchesPath(change.filePath, config.allow.paths));
+      const integrityChange = guarded.find((change) => isCoreIntegrityPath(change.filePath));
+      if (integrityChange) {
+        throw new Error("[open-disipline] BLOCK: guardrail implementation/configuration is protected from agent modification: " + integrityChange.filePath);
+      }
       const files = [...new Set(guarded.map((change) => normalizePath(change.filePath)))];
       const testFiles = files.filter((file) => config.testIntegrity.paths.some((pattern) => matchesPath(file, [pattern])));
       const codeFiles = files.filter((file) => config.codeFileExtensions.includes(file.slice(file.lastIndexOf("."))));
