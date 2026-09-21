@@ -14,6 +14,7 @@ export interface NamingDisciplineConfig {
   protectedPaths: string[]; commandGuards: string[];
   readProtection: { enabled: boolean; paths: string[]; allowPaths: string[] };
   testIntegrity: { enabled: boolean; severity: "warn" | "block"; paths: string[] };
+  testEvidence: { enabled: boolean; severity: "warn" | "block"; paths: string[] };
   changeSurface: { enabled: boolean; warnAt: number; blockAt: number };
 }
 
@@ -30,6 +31,7 @@ export const DEFAULT_CONFIG: NamingDisciplineConfig = {
   protectedPaths:[],commandGuards:[],
   readProtection:{enabled:true,paths:[".env",".env.*","**/.env","**/.env.*"],allowPaths:[".env.example",".env.sample",".env.template","**/.env.example","**/.env.sample","**/.env.template"]},
   testIntegrity:{enabled:true,severity:"warn",paths:["tests/**","test/**","**/*.test.*","**/*.spec.*","**/__tests__/**"]},
+  testEvidence:{enabled:true,severity:"warn",paths:["tests/**","test/**","**/*.test.*","**/*.spec.*","**/__tests__/**"]},
   changeSurface:{enabled:true,warnAt:25,blockAt:100},
 };
 
@@ -52,7 +54,7 @@ export function mergeConfig(input?:unknown):NamingDisciplineConfig{
   if(typeof input.caseSensitive==="boolean")base.caseSensitive=input.caseSensitive;
   if(typeof input.autoBrands==="boolean")base.autoBrands=input.autoBrands;
   if(Array.isArray(input.ignoredAutoBrands))base.ignoredAutoBrands=arr(input.ignoredAutoBrands,base.ignoredAutoBrands);
-  const c=section(input,"context"),a=section(input,"allow"),w=section(input,"warn"),b=section(input,"block"),rp=section(input,"readProtection"),ti=section(input,"testIntegrity"),cs=section(input,"changeSurface");
+  const c=section(input,"context"),a=section(input,"allow"),w=section(input,"warn"),b=section(input,"block"),rp=section(input,"readProtection"),ti=section(input,"testIntegrity"),te=section(input,"testEvidence"),cs=section(input,"changeSurface");
   if(typeof c.enabled==="boolean")base.context.enabled=c.enabled;
   if(typeof c.includeOnSubsessions==="boolean")base.context.includeOnSubsessions=c.includeOnSubsessions;
   if(typeof c.maxCharacters==="number"&&c.maxCharacters>=500)base.context.maxCharacters=Math.floor(c.maxCharacters);
@@ -63,7 +65,7 @@ export function mergeConfig(input?:unknown):NamingDisciplineConfig{
   if("patterns" in w)base.warn.patterns=arr(w.patterns,base.warn.patterns);
   if("ambiguousSuffixes" in w)base.warn.ambiguousSuffixes=arr(w.ambiguousSuffixes,base.warn.ambiguousSuffixes);
   if("patterns" in b)base.block.patterns=arr(b.patterns,base.block.patterns);
-  for(const k of ["codeFileExtensions","ignoreExtensions","protectedPaths","commandGuards"] as const)if(k in input)(base[k] as string[])=arr(input[k],base[k] as string[]);
+  for(const k of ["codeFileExtensions","ignoreExtensions","protectedPaths","commandGuards"] as const)if(k in input)(base[k] as string[]) = arr(input[k],base[k] as string[]);
   if(isRecord(input.qualifierSuggestions))for(const [k,v] of Object.entries(input.qualifierSuggestions))base.qualifierSuggestions[k]=arr(v,[]);
   if(typeof rp.enabled==="boolean")base.readProtection.enabled=rp.enabled;
   if("paths" in rp)base.readProtection.paths=arr(rp.paths,base.readProtection.paths);
@@ -71,6 +73,9 @@ export function mergeConfig(input?:unknown):NamingDisciplineConfig{
   if(typeof ti.enabled==="boolean")base.testIntegrity.enabled=ti.enabled;
   if(ti.severity==="warn"||ti.severity==="block")base.testIntegrity.severity=ti.severity;
   if("paths" in ti)base.testIntegrity.paths=arr(ti.paths,base.testIntegrity.paths);
+  if(typeof te.enabled==="boolean")base.testEvidence.enabled=te.enabled;
+  if(te.severity==="warn"||te.severity==="block")base.testEvidence.severity=te.severity;
+  if("paths" in te)base.testEvidence.paths=arr(te.paths,base.testEvidence.paths);
   if(typeof cs.enabled==="boolean")base.changeSurface.enabled=cs.enabled;
   if(typeof cs.warnAt==="number"&&cs.warnAt>=1)base.changeSurface.warnAt=Math.floor(cs.warnAt);
   if(typeof cs.blockAt==="number"&&cs.blockAt>=1)base.changeSurface.blockAt=Math.floor(cs.blockAt);
@@ -85,17 +90,7 @@ export async function loadConfig(directory:string,fileName="discipline.config.js
   if(config.autoBrands)config.brands=[...new Set([...config.brands,...await detectBrands(directory,config.ignoredAutoBrands)])];
   return config;
 }
-async function readConfigFile(path:string):Promise<unknown|undefined>{
-  try{return JSON.parse(await readFile(path,"utf8"));}catch(error){
-    if((error as NodeJS.ErrnoException)?.code!=="ENOENT")console.warn("[open-disipline] Ignoring invalid config:",path);
-    return undefined;
-  }
-}
+async function readConfigFile(path:string):Promise<unknown|undefined>{try{return JSON.parse(await readFile(path,"utf8"));}catch(error){if((error as NodeJS.ErrnoException)?.code!=="ENOENT")console.warn("[open-disipline] Ignoring invalid config:",path);return undefined;}}
 function pascalCase(s:string){return s.split(/[^A-Za-z0-9]+/).filter(Boolean).map(x=>x[0]!.toUpperCase()+x.slice(1)).join("");}
 function normalized(s:string){return s.toLowerCase().replace(/[^a-z0-9]+/g,"");}
-export async function detectBrands(directory:string,ignored=DEFAULT_CONFIG.ignoredAutoBrands):Promise<string[]>{
-  const pkg=await readConfigFile(join(directory,"package.json")) as {name?:unknown}|undefined;
-  const raw=typeof pkg?.name==="string"&&pkg.name.trim()?pkg.name:basename(directory);
-  const candidate=pascalCase(raw);
-  return candidate&&!ignored.some(x=>normalized(x)===normalized(candidate))?[candidate]:[];
-}
+export async function detectBrands(directory:string,ignored=DEFAULT_CONFIG.ignoredAutoBrands):Promise<string[]>{const pkg=await readConfigFile(join(directory,"package.json")) as {name?:unknown}|undefined;const raw=typeof pkg?.name==="string"&&pkg.name.trim()?pkg.name:basename(directory);const candidate=pascalCase(raw);return candidate&&!ignored.some(x=>normalized(x)===normalized(candidate))?[candidate]:[];}
