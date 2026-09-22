@@ -31,6 +31,7 @@ export interface RuleContext {
   dependencyEvidence?:DependencyImportEvidence[];
   dependencyAdditions?:{name:string;value?:string;section:string}[];
   taskIntent?:TaskIntent;
+  priorRegressionTestEvidence?:boolean;
 }
 
 export interface RuleFinding {
