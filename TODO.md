@@ -1,6 +1,6 @@
-# OpenDisipline Roadmap
+# OpenDiscipline Roadmap
 
-OpenDisipline is intended to enforce universal engineering practices for agentic development without becoming a framework-specific linter.
+OpenDiscipline is intended to enforce universal engineering practices for agentic development without becoming a framework-specific linter.
 
 The implementation order is deliberately phased. Do not mark an item complete because code exists; it is complete only when the behavior is implemented, tested, documented, and validated on the supported OpenCode V1 hook surface.
 
