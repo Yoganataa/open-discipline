@@ -8,7 +8,8 @@
   "exports": { ".": "./src/index.ts" },
   "scripts": {
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval:validate": "node --experimental-strip-types --test tests/evals.test.ts"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.18.30",
