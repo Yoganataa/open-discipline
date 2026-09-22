@@ -116,6 +116,9 @@ This roadmap is part of the project. A feature is considered useful only when it
 
 ### Next priority
 
+The universal rule contract is now enforced by the rule registry. Every rule declares observable evidence, a legitimate-exception model, bypass analysis, and positive/negative/exception test requirements. Findings without observable evidence are suppressed and surfaced as a contract warning instead of being treated as reliable enforcement evidence.
+
+
 - [x] Completion-evidence warning: detect code changes that reach session idle without a validation command.
 - [x] Validation-repetition warning: detect repeated identical validation attempts; V1 does not expose a portable command exit code through `command.executed`, so this deliberately does not claim to prove failure.
 - [x] Dependency API/version truth: verify JavaScript imports against local installed metadata/resolution and package-lock manifest truth without network access.
