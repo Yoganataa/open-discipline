@@ -40,8 +40,10 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
  const restoreState=async(sessionID:string)=>{const state=getState(sessionID);if(state.memoryLoaded)return state;const checkpoint=await loadTaskCheckpoint(directory,sessionID);if(checkpoint)mergeCheckpointIntoSessionState(checkpoint,state);state.memoryLoaded=true;return state;};
  const commandPatterns=config.commandGuards.flatMap(source=>{try{return[{source,regex:new RegExp(source)}];}catch{console.warn("[open-discipline] Invalid command guard skipped: "+source);return[];}});
 
+ const optionalHooksDisabled=process.env.OPENDISCIPLINE_SMOKE_OPTIONAL_OFF==="1";
  return {
-  "experimental.chat.messages.transform":async(_input,output)=>{
+  ...(optionalHooksDisabled ? {} : {"experimental.chat.messages.transform":async(_input,output)=>{
+   if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"experimental.chat.messages.transform",outcome:"observed"});
    const firstIntent=captureInitialUserIntent(output);
    if(firstIntent){const state=await restoreState(firstIntent.sessionID);if(!state.taskIntent)state.taskIntent=firstIntent;await persistState(firstIntent.sessionID);}
    if(!config.enabled||!config.context.enabled||!output.messages.length)return;
@@ -50,7 +52,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    const context=buildPolicyContext(config);if(!context)return;
    const firstText=firstUser.parts.find(part=>part.type==="text");if(!firstText)return;
    firstUser.parts.unshift({...firstText,text:context});
-  },
+  }}),
   "tool.execute.before":async(input,output)=>{
    if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,outcome:"observed"});
    if(!config.enabled)return;
@@ -103,18 +105,19 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    for(const guard of commandPatterns){guard.regex.lastIndex=0;if(!guard.regex.test(input.command))continue;const message="[open-discipline] "+(config.mode==="strict"?"BLOCK":"WARN")+": command matches configured guard: "+guard.source;if(config.mode==="strict")throw new Error(message);console.warn(message);}
    if(!isValidationCommand(input.command))return;const state=await restoreState(input.sessionID);state.validationAttempted++;const key=validationKey(input.command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");await persistState(input.sessionID);
   },
-  "event":async({event})=>{
+  ...(optionalHooksDisabled ? {} : {"event":async({event})=>{
+   if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"event",outcome:"observed",detail:(event as {type?:string}).type??""});
    const type=(event as {type?:string}).type??"";const payload=event as {properties?:Record<string,unknown>};const sessionID=typeof payload.properties?.sessionID==="string"?payload.properties.sessionID:"";if(!sessionID)return;
    const state=getState(sessionID);
    if(type==="session.idle"&&state.codeChanged&&!state.validationAttempted&&!state.completionWarned){state.completionWarned=true;console.warn("[open-discipline] completion-evidence: code changed without a detected validation command. Run the relevant test/typecheck/lint/build validation before considering the task complete.");}
    if(type==="session.idle"){await persistState(sessionID);sessionStates.delete(sessionID);}
-  },
-  "permission.ask":async(input,output)=>{
+  }}),
+  ...(optionalHooksDisabled ? {} : {"permission.ask":async(input,output)=>{
    if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"permission.ask",sessionID:input.sessionID,outcome:"observed"});
    if(!config.enabled||!config.readProtection.enabled||input.type!=="read")return;const path=typeof input.pattern==="string"?input.pattern:"";
    if(!path||!matchesPath(path,config.readProtection.paths)||matchesPath(path,config.readProtection.allowPaths))return;output.status="deny";if(smoke.enabled)await smoke.record({type:"guard.result",hook:"permission.ask",sessionID:input.sessionID,check:"protected-read",outcome:"blocked",detail:"Protected read denied: "+path});
    try{await client.app.log({body:{service:"open-discipline",level:"warn",message:"Blocked protected-file read",extra:{path}}});}catch{}
-  },
+  }}),
  };
 };
 export default OpenDiscipline;
