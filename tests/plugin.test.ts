@@ -9,6 +9,8 @@ import { guardShellCommand, isValidationCommand } from "../src/runtime/command.t
 import { dependencyTruthRule } from "../src/rules/dependencies.ts";
 import { architectureRule } from "../src/rules/architecture.ts";
 import { RuleRegistry } from "../src/core/rules.ts";
+import { captureLatestUserIntent, extractDeclaredPaths } from "../src/runtime/intent.ts";
+import { scopeIntentRule } from "../src/rules/changes.ts";
 
 async function plugin() {
   return OpenDisipline({
@@ -293,4 +295,73 @@ test("rule registry enforces universal contracts and finding evidence", () => {
   const findings = registry.runAll({ filePath: "src/a.ts", addedText: "", config: mergeConfig() });
   assert.equal(findings[0]?.rule, "rule-contract");
   assert.match(findings[0]?.message ?? "", /without observable evidence/);
+});
+
+
+test("intent extraction only records explicit path evidence", () => {
+  assert.deepEqual(
+    extractDeclaredPaths("Fix \`src/index.ts\` and tests/plugin.test.ts, but do not touch src/generated/**."),
+    ["src/index.ts", "tests/plugin.test.ts", "src/generated/**"],
+  );
+
+  assert.deepEqual(
+    extractDeclaredPaths("Fix the dependency handling without naming files."),
+    [],
+  );
+});
+
+test("scope intent captures latest real user message and session identity", () => {
+  const intent = captureLatestUserIntent({
+    messages: [
+      {
+        info: { role: "assistant", sessionID: "s", id: "a1" },
+        parts: [{ type: "text", text: "old assistant output" }],
+      },
+      {
+        info: { role: "user", sessionID: "s", id: "u1" },
+        parts: [{ type: "text", text: "Update \`src/runtime/project.ts\`" }],
+      },
+      {
+        info: { role: "user", sessionID: "s", id: "u2" },
+        parts: [{ type: "text", text: "Also update \`tests/plugin.test.ts\`" }],
+      },
+    ],
+  });
+  assert.equal(intent?.sessionID, "s");
+  assert.equal(intent?.messageID, "u2");
+  assert.deepEqual(intent?.declaredPaths, ["tests/plugin.test.ts"]);
+});
+
+test("scope intent warns only for an explicit out-of-scope path", () => {
+  const config = mergeConfig({ mode: "strict" });
+  const intent = {
+    sessionID: "s",
+    messageID: "u",
+    text: "Update \`src/runtime/project.ts\`",
+    declaredPaths: ["src/runtime/project.ts"],
+  };
+  assert.equal(scopeIntentRule.check({
+    filePath: "src/runtime/project.ts",
+    addedText: "",
+    config,
+    taskIntent: intent,
+  }).length, 0);
+  const findings = scopeIntentRule.check({
+    filePath: "src/index.ts",
+    addedText: "",
+    config,
+    taskIntent: intent,
+  });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0]?.severity, "warn");
+  assert.match(findings[0]?.evidence ?? "", /changed:src\/index\.ts/);
+});
+
+test("scope intent degrades silently when no explicit path intent exists", () => {
+  const config = mergeConfig({ mode: "strict" });
+  assert.deepEqual(scopeIntentRule.check({
+    filePath: "src/index.ts",
+    addedText: "",
+    config,
+  }), []);
 });
