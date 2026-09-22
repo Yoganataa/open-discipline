@@ -13,7 +13,7 @@ function dependencyName(filePath:string,spec:string):string|undefined{
  if(ext===".rs"){if(spec.startsWith("std::")||spec.startsWith("core::")||spec.startsWith("alloc::")||spec.startsWith("crate::")||spec.startsWith("self::")||spec.startsWith("super::"))return;return topPackage(spec);}
  return;
 }
-export const dependencyTruthRule:DisciplineRule={id:"dependency-truth",category:"dependency",defaultSeverity:"warn",check(ctx:RuleContext):RuleFinding[]{
+export const dependencyTruthRule:DisciplineRule={id:"dependency-truth",category:"dependency",defaultSeverity:"warn",contract:{evidence:"A changed source file imports an external dependency that is absent from the detected manifest, or local JavaScript resolution cannot resolve a declared import.",legitimateException:"Workspace aliases, generated code, and ecosystem-specific import-to-distribution mappings may require adapter configuration; ambiguous cases remain warnings.",bypassAnalysis:"Local manifest truth does not prove runtime availability in every environment. The rule deliberately avoids network lookup and invented package/API mappings.",testRequirements:{positive:"Detect an undeclared external import and an unresolved declared JavaScript API.",negative:"Ignore relative imports and supported builtins.",exception:"Do not report a declared dependency merely because its runtime installation is unavailable; report only the local resolution evidence when available.}},check(ctx:RuleContext):RuleFinding[]{
  const deps=ctx.dependencyInventory;if(!deps)return[];const findings:RuleFinding[]=[];
  for(const spec of extractImports(ctx.filePath,ctx.addedText)){
   const name=dependencyName(ctx.filePath,spec);if(!name)continue;
