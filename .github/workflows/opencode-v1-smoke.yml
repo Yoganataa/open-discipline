@@ -72,22 +72,32 @@ jobs:
         run: |
           set -euo pipefail
           log="/tmp/opencode-${VERSION}.log"
-          set +e
-          timeout 20s /tmp/opencode/opencode --print-logs --log-level INFO serve --port 0 >"${log}" 2>&1
-          status=$?
-          set -e
+          mkdir -p /tmp/opencode-project
+          printf '{"plugin":["%s/.opencode/plugins/open-discipline.ts"]}\n' "$GITHUB_WORKSPACE" > /tmp/opencode-project/opencode.json
 
-          test "${status}" = "124" || {
-            echo "OpenCode exited before the bounded smoke timeout. status=${status}"
+          OPENDISCIPLINE_SMOKE=1 /tmp/opencode/opencode --print-logs --log-level INFO serve --port 0 >"${log}" 2>&1 &
+          opencode_pid=$!
+          trap 'kill "${opencode_pid}" 2>/dev/null || true; wait "${opencode_pid}" 2>/dev/null || true' EXIT
+
+          ready=0
+          for attempt in $(seq 1 50); do
+            if curl --fail --silent --show-error               -H "x-opencode-directory: /tmp/opencode-project"               "http://127.0.0.1:4096/config" >/tmp/opencode-config.json; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "${opencode_pid}" 2>/dev/null; then
+              echo "OpenCode exited before the instance became ready."
+              cat "${log}"
+              exit 1
+            fi
+            sleep 0.2
+          done
+
+          test "${ready}" = "1" || {
+            echo "OpenCode did not become ready within 10 seconds."
             cat "${log}"
             exit 1
           }
-
-          mkdir -p /tmp/opencode-project
-          printf '{"plugin":["%s/.opencode/plugins/open-discipline.ts"]}\n' "$GITHUB_WORKSPACE" > /tmp/opencode-project/opencode.json
-          curl --fail --silent --show-error \
-            -H "x-opencode-directory: /tmp/opencode-project" \
-            "http://127.0.0.1:4096/config" >/tmp/opencode-config.json
 
           grep -F "[open-discipline] smoke: plugin loaded" "${log}" >/dev/null || {
             echo "OpenDiscipline plugin load evidence was not observed for OpenCode ${VERSION}."
