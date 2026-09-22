@@ -6,7 +6,7 @@ The purpose is to answer one question that unit tests cannot answer:
 
 > Does the actual OpenCode installation on the user's machine load OpenDiscipline and execute the V1 hook boundary with the expected enforcement behavior?
 
-OpenCode's local plugin discovery loads TypeScript/JavaScript plugins from `.opencode/plugins/`, so this smoke test must be run from an OpenCode session using the repository's actual plugin installation. citeturn1search0
+OpenCode's local plugin discovery loads TypeScript/JavaScript plugins from `.opencode/plugins/`, so this smoke test must be run from an OpenCode session using the repository's actual plugin installation.
 
 ## What gets produced
 
@@ -53,7 +53,7 @@ The expected evidence is:
 - a validation command crossing the command boundary;
 - a second session ID if the Task/subtask actually creates a child session.
 
-OpenCode's Task mechanism creates child sessions in the V1 host path; the smoke report therefore records session IDs rather than trusting the model's statement that a subtask ran. citeturn0search2
+OpenCode's Task mechanism creates child sessions in the V1 host path; the smoke report therefore records session IDs rather than trusting the model's statement that a subtask ran.
 
 Exit OpenCode normally. The runner then generates the report automatically.
 
