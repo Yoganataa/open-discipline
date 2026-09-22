@@ -24,6 +24,8 @@ OpenDisipline treats these as engineering-control problems. It does not attempt 
 | `test-integrity` | Detect disabled, vacuous, deleted, or weakened test oracles | warn |
 | `test-evidence` | Flag behavior/code changes with no test-file change | warn |
 | `change-surface` | Keep a single tool operation from exploding into a large guarded file set | warn/block |
+| `dependency-truth` | Detect external imports that are not declared in the detected project manifest | warn |
+| `architecture` | Enforce explicit import boundaries configured per project | block/warn |
 | command guards | Optional repository-specific command regexes | opt-in |
 | protected reads | Protect `.env`-style reads at the tool boundary | enabled |
 | guardrail integrity | Prevent agent writes to the plugin's own rules/configuration | enabled |
@@ -116,11 +118,13 @@ This roadmap is part of the project. A feature is considered useful only when it
 
 - [x] Completion-evidence warning: detect code changes that reach session idle without a validation command.
 - [x] Validation-repetition warning: detect repeated identical validation attempts; V1 does not expose a portable command exit code through `command.executed`, so this deliberately does not claim to prove failure.
-- [ ] Dependency-truth guard: detect guessed/nonexistent package APIs or version assumptions before they become implementation churn.
+- [ ] Dependency API/version truth: verify package API/version claims against installed metadata or lockfiles without network access.
 - [ ] Dependency-change guard: flag unnecessary new dependencies and suspicious dependency changes.
 - [ ] Scope/intent ledger: compare the requested task surface with the actual changed surface instead of relying only on file-count thresholds.
 - [ ] Root-cause/fix evidence: connect a reported failure to a regression test and the implementation change that addresses it.
 - [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
+- [x] Dependency-truth baseline: detect undeclared external imports for supported manifests.
+- [x] Configurable architecture boundaries: block explicitly denied imports in configured source layers.
 - [ ] Subagent enforcement verification: test whether the target OpenCode V1 host consistently applies the same guardrails to child sessions.
 - [ ] Compatibility matrix: test the plugin against multiple OpenCode V1 releases instead of using one release as the only runtime assumption.
 
@@ -215,3 +219,28 @@ A new rule should explain:
 - how legitimate exceptions are configured;
 - how an agent could otherwise bypass it;
 - what evidence demonstrates that the rule itself works.
+
+### Architecture configuration
+
+Architecture enforcement is intentionally opt-in by rule. An empty rule list does nothing, so enabling the subsystem does not impose a framework on an unknown repository.
+
+Example:
+
+```json
+{
+  "architecture": {
+    "enabled": true,
+    "rules": [
+      { "from": "src/ui/**", "denyImports": ["src/database/**", "@/database/**"] }
+    ]
+  }
+}
+```
+
+This is an explicit boundary, not an attempt to infer the project's architecture.
+
+### Dependency truth
+
+The dependency rule compares imports in changed files with locally detected manifests such as `package.json`, Python requirement files, `go.mod`, `Cargo.toml`, and `pubspec.yaml`. It is a warning by default because import-to-package mappings and monorepo/workspace layouts can be ambiguous.
+
+It does not install packages, query a registry, or send source code to a service. It does not claim that an undeclared import is definitely nonexistent; it says the repository's dependency declaration does not currently prove that the dependency is declared.
