@@ -9,7 +9,7 @@ import { changeSurfaceRule, testIntegrityRule, testEvidenceRule } from "./rules/
 import { extractChanges } from "./scanners/patch.ts";
 import { matchesPath, normalizePath } from "./scanners/paths.ts";
 import { suppressionRule } from "./rules/suppressions.ts";
-import { guardShellCommand, isValidationCommand, validationKey, validationPassed } from "./runtime/command.ts";
+import { guardShellCommand, isValidationCommand, validationKey } from "./runtime/command.ts";
 import { createSessionState } from "./runtime/session-state.ts";
 
 const FILE_TOOLS = new Set(["write", "edit", "apply_patch"]);
@@ -21,6 +21,8 @@ const CORE_INTEGRITY_PATHS = [
   "src/rules/**",
   "src/scanners/**",
   ".opencode/plugins/open-disipline.ts",
+  ".opencode/plugins/**",
+  ".git/**",
 ];
 
 function isCoreIntegrityPath(path: string): boolean {
@@ -71,7 +73,22 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
     },
 
     "tool.execute.before": async (input, output) => {
-      if (!config.enabled || !FILE_TOOLS.has(input.tool)) return;
+      if (!config.enabled) return;
+
+      if (input.tool === "read" && config.readProtection.enabled) {
+        const args = output.args as Record<string, unknown>;
+        const path = typeof args.filePath === "string" ? args.filePath : "";
+        if (
+          path &&
+          matchesPath(path, config.readProtection.paths) &&
+          !matchesPath(path, config.readProtection.allowPaths)
+        ) {
+          throw new Error("[open-disipline] BLOCK: protected-file read: " + path);
+        }
+        return;
+      }
+
+      if (!FILE_TOOLS.has(input.tool)) return;
       const changes = extractChanges(input.tool, output.args as Record<string, unknown>);
       if (!changes.length) return;
       const guarded = changes.filter((change) => !matchesPath(change.filePath, config.allow.paths));
@@ -154,6 +171,8 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
         state.completionWarned = true;
         console.warn("[open-disipline] completion-evidence: code changed without a detected validation command. Run the relevant test/typecheck/lint/build validation before considering the task complete.");
       }
+
+      if (type === "session.idle") sessionStates.delete(sessionID);
     },
 
     "permission.ask": async (input, output) => {
