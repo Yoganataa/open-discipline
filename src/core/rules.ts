@@ -1,4 +1,6 @@
 import type { NamingDisciplineConfig, Severity } from "../config.ts";
+import type { DependencyImportEvidence, DependencyInventory } from "../runtime/project.ts";
+
 export interface RuleContext {
   filePath:string;
   addedText:string;
@@ -9,7 +11,9 @@ export interface RuleContext {
   testFiles?:string[];
   codeFiles?:string[];
   changeIndex?:number;
-  dependencyInventory?: { javascript:string[]; python:string[]; go:string[]; rust:string[]; dart:string[] };
+  dependencyInventory?:DependencyInventory;
+  dependencyEvidence?:DependencyImportEvidence[];
+  dependencyAdditions?:{name:string;value?:string;section:string}[];
 }
 export interface RuleFinding {
   rule:string;
@@ -19,7 +23,7 @@ export interface RuleFinding {
 }
 export interface DisciplineRule {
   id:string;
-  category?: "safety"|"integrity"|"scope"|"dependency"|"architecture"|"quality"|"naming";
+  category?:"safety"|"integrity"|"scope"|"dependency"|"architecture"|"quality"|"naming";
   defaultSeverity?:Severity;
   check(ctx:RuleContext):RuleFinding[];
 }
@@ -27,15 +31,13 @@ export class RuleRegistry {
   private readonly rules:DisciplineRule[]=[];
   register(rule:DisciplineRule){this.rules.push(rule);}
   runAll(ctx:RuleContext):RuleFinding[]{
-    const seen=new Set<string>();
-    const out:RuleFinding[]=[];
+    const seen=new Set<string>(); const out:RuleFinding[]=[];
     for(const rule of this.rules){
       try{
         for(const finding of rule.check(ctx)){
           const key=[finding.rule,finding.severity,finding.message].join("\0");
           if(seen.has(key)) continue;
-          seen.add(key);
-          out.push(finding);
+          seen.add(key); out.push(finding);
         }
       }catch(error){
         const message=error instanceof Error?error.message:String(error);
