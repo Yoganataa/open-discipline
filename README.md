@@ -42,6 +42,8 @@ The workflow layer is intentionally separate from enforcement. A workflow instru
 
 See `docs/WORKFLOW.md` for Workflow v1 and `.opencode/skills/open-discipline-workflow/SKILL.md` for the native OpenCode skill.
 
+OpenCode host compatibility is validated separately from PR CI. Run the local smoke procedure in `docs/SMOKE-TEST.md` against the OpenCode installation you actually use, then send the generated report artifacts when runtime evidence is needed.
+
 The enforcement path is local and offline. It does not send source code, prompts, secrets, or telemetry to an external service.
 
 The important design rule is:
