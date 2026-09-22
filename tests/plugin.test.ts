@@ -6,6 +6,8 @@ import { testIntegrityRule } from "../src/rules/changes.ts";
 import { suppressionRule } from "../src/rules/suppressions.ts";
 import { mergeConfig } from "../src/config.ts";
 import { guardShellCommand, isValidationCommand } from "../src/runtime/command.ts";
+import { dependencyTruthRule } from "../src/rules/dependencies.ts";
+import { architectureRule } from "../src/rules/architecture.ts";
 
 async function plugin() {
   return OpenDisipline({
@@ -155,4 +157,40 @@ test("tool boundary protects env reads", async () => {
     ),
     /protected-file read/,
   );
+});
+
+
+test("dependency truth flags undeclared JavaScript packages but ignores builtins and relative imports", async () => {
+  const p = await plugin();
+  const h = p["tool.execute.before"]!;
+  await h(
+    { tool: "write", sessionID: "dep", callID: "dep1" },
+    { args: { filePath: "src/example.ts", content: "import fs from \"fs\";\nimport local from \"./local\";\nimport missing from \"definitely-not-declared-package\";" } },
+  );
+});
+
+
+test("dependency rule and architecture boundary are deterministic", () => {
+  const config = mergeConfig({
+    mode: "strict",
+    dependencyTruth: { enabled: true, severity: "warn" },
+    architecture: {
+      enabled: true,
+      rules: [{ from: "src/ui/**", denyImports: ["src/database/", "@/database/"] }],
+    },
+  });
+  const dependencyFindings = dependencyTruthRule.check({
+    filePath: "src/a.ts",
+    addedText: "import x from \"not-in-manifest\";",
+    config,
+    dependencyInventory: { javascript: [], python: [], go: [], rust: [], dart: [] },
+  });
+  assert.equal(dependencyFindings.length, 1);
+
+  const architectureFindings = architectureRule.check({
+    filePath: "src/ui/screen.ts",
+    addedText: "import db from \"src/database/client\";",
+    config,
+  });
+  assert.equal(architectureFindings.length, 1);
 });
