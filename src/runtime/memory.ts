@@ -147,7 +147,7 @@ export function checkpointFromSessionState(sessionID: string, state: SessionStat
     completedTasks: [],
     blockedTasks: [],
     decisions: [],
-    affectedFiles: [],
+    affectedFiles: [...state.affectedFiles],
     validation,
     updatedAt: now.toISOString(),
   };
