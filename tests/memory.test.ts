@@ -18,6 +18,7 @@ test("checkpoint has a stable schema and captures validation evidence", () => {
   const state = createSessionState();
   state.validationAttempted = 2;
   state.lastValidationKey = "npm test";
+  state.affectedFiles.add("src/example.ts");
 
   const checkpoint = checkpointFromSessionState("session-1", state, new Date("2026-09-22T12:00:00Z"));
 
@@ -26,6 +27,7 @@ test("checkpoint has a stable schema and captures validation evidence", () => {
   assert.equal(checkpoint.validation[0]?.command, "npm test");
   assert.equal(checkpoint.validation[0]?.attempts, 2);
   assert.equal(checkpoint.validation[0]?.result, "attempted");
+  assert.deepEqual(checkpoint.affectedFiles, ["src/example.ts"]);
 });
 
 test("malformed or unsupported memory is rejected rather than guessed", () => {
