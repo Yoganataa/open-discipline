@@ -9,8 +9,8 @@ function dependencyName(filePath:string,spec:string):string|undefined{
  if(RELATIVE.test(spec)||spec.startsWith("#")||spec.startsWith("dart:")||spec.startsWith("package:"))return;
  if([".ts",".tsx",".js",".jsx",".mjs",".cjs"].includes(ext)){const p=topPackage(spec);return BUILTINS.has(p)?undefined:p;}
  if([".py",".pyi"].includes(ext)){const p=spec.split(".")[0]!;return BUILTINS.has(p)?undefined:p.replace(/_/g,"-").toLowerCase();}
- if(ext===".go")return spec.startsWith("std/")?undefined:spec;
- if(ext===".rs")return topPackage(spec);
+ if(ext===".go"){if(!spec.includes("/")||spec.startsWith("std/"))return;return spec;}
+ if(ext===".rs"){if(spec.startsWith("std::")||spec.startsWith("core::")||spec.startsWith("alloc::")||spec.startsWith("crate::")||spec.startsWith("self::")||spec.startsWith("super::"))return;return topPackage(spec);}
  return;
 }
 export const dependencyTruthRule:DisciplineRule={id:"dependency-truth",check(ctx:RuleContext):RuleFinding[]{
