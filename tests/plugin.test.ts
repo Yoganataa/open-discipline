@@ -229,3 +229,26 @@ test("rule registry deduplicates identical findings", () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0]?.evidence, "x");
 });
+
+
+test("dependency truth reports unresolved locally installed JavaScript APIs", async () => {
+  const { discoverDependencies, inspectJavascriptImports } = await import("../src/runtime/project.ts");
+  const inventory = await discoverDependencies(process.cwd());
+  const evidence = await inspectJavascriptImports(process.cwd(), ["@opencode-ai/plugin/nonexistent-export"], inventory);
+  assert.equal(evidence[0]?.resolved, false);
+});
+
+test("dependency addition detector distinguishes existing and new package entries", async () => {
+  const { detectDependencyAdditions } = await import("../src/runtime/project.ts");
+  const additions = detectDependencyAdditions({
+    filePath: "package.json",
+    addedText: JSON.stringify({
+      dependencies: {
+        "existing-package": "^1.0.0",
+        "new-package": "^2.0.0"
+      }
+    }),
+    source: "write"
+  }, ["existing-package"]);
+  assert.deepEqual(additions.map(x => x.name), ["new-package"]);
+});
