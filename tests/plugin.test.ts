@@ -126,6 +126,7 @@ test("destructive command guard protects repository and guardrail paths", () => 
   assert.equal(guardShellCommand("rm -rf ./tmp", protectedPaths)?.severity, "warn");
   assert.equal(guardShellCommand("git push origin main --force", protectedPaths)?.severity, "block");
   assert.equal(guardShellCommand("echo ok", protectedPaths), undefined);
+  assert.equal(guardShellCommand("rm -rf .git", protectedPaths)?.severity, "block");
 });
 
 test("validation classifier covers common project stacks", () => {
@@ -141,4 +142,17 @@ test("validation classifier covers common project stacks", () => {
   ]) {
     assert.equal(isValidationCommand(command), true, command);
   }
+});
+
+
+test("tool boundary protects env reads", async () => {
+  const p = await plugin();
+  const h = p["tool.execute.before"]!;
+  await assert.rejects(
+    () => h(
+      { tool: "read", sessionID: "s-read", callID: "c-read" },
+      { args: { filePath: ".env" } },
+    ),
+    /protected-file read/,
+  );
 });
