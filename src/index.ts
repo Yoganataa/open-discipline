@@ -78,7 +78,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
     const dependencyEvidence=/\.(ts|tsx|js|jsx|mjs|cjs)$/i.test(change.filePath)&&dependencyInventory
       ?await inspectJavascriptImports(directory,extractImports(change.filePath,change.addedText),dependencyInventory):undefined;
     const isRegressionTest = config.testIntegrity.paths.some(pattern => matchesPath(change.filePath, [pattern]));
-    const hasRegressionOracle = isRegressionTest && /(?:\\bexpect|\\bassert|\\brequire|\\bassert_eq|\\bassert_ne|\\bassert!|\\bshould|\\btoHave|\\btoBe|\\btoEqual|\\bAssert\\.)|\\bassert\\s*\\(/i.test(change.addedText);
+    const hasRegressionOracle = isRegressionTest && /(?:expect|assert|assert_eq|assert_ne|assert!|should|toHave|toBe|toEqual|Assert\.)/i.test(change.addedText);
     findings.push(...registry.runAll({filePath:change.filePath,addedText:change.addedText,removedText:change.removedText,deleted:change.deleted,config,changeFiles:files,testFiles,codeFiles,changeIndex:index,dependencyInventory,dependencyEvidence,dependencyAdditions,taskIntent:state.taskIntent,priorRegressionTestEvidence:state.regressionTestEvidenceSeen}));
     if(hasRegressionOracle)state.regressionTestEvidenceSeen=true;
    }
