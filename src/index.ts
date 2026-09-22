@@ -5,7 +5,7 @@ import { RuleRegistry } from "./core/rules.ts";
 import { namingRule } from "./rules/naming.ts";
 import { slopRule } from "./rules/slop.ts";
 import { protectedFilesRule } from "./rules/files.ts";
-import { changeSurfaceRule, testIntegrityRule, testEvidenceRule } from "./rules/changes.ts";
+import { changeSurfaceRule, testIntegrityRule, testEvidenceRule, scopeIntentRule } from "./rules/changes.ts";
 import { extractChanges } from "./scanners/patch.ts";
 import { extractImports } from "./scanners/imports.ts";
 import { matchesPath, normalizePath } from "./scanners/paths.ts";
@@ -15,6 +15,7 @@ import { createSessionState } from "./runtime/session-state.ts";
 import { architectureRule } from "./rules/architecture.ts";
 import { dependencyTruthRule } from "./rules/dependencies.ts";
 import { detectDependencyAdditions, discoverDependencies, inspectJavascriptImports } from "./runtime/project.ts";
+import { captureLatestUserIntent } from "./runtime/intent.ts";
 
 const FILE_TOOLS=new Set(["write","edit","apply_patch"]);
 const SHELL_TOOLS=new Set(["bash","sh","zsh","fish","powershell","pwsh","cmd","shell"]);
@@ -25,7 +26,7 @@ export const OpenDisipline:Plugin=async({directory,client})=>{
  const config:NamingDisciplineConfig=await loadConfig(directory);
  const dependencyInventory=config.dependencyTruth.enabled?await discoverDependencies(directory):undefined;
  const registry=new RuleRegistry();
- registry.register(protectedFilesRule);registry.register(namingRule);registry.register(slopRule);registry.register(testIntegrityRule);registry.register(testEvidenceRule);registry.register(suppressionRule);registry.register(changeSurfaceRule);
+ registry.register(protectedFilesRule);registry.register(namingRule);registry.register(slopRule);registry.register(testIntegrityRule);registry.register(testEvidenceRule);registry.register(suppressionRule);registry.register(changeSurfaceRule);registry.register(scopeIntentRule);
  if(config.architecture.enabled)registry.register(architectureRule);
  if(config.dependencyTruth.enabled)registry.register(dependencyTruthRule);
  const sessionStates=new Map<string,ReturnType<typeof createSessionState>>();
@@ -74,7 +75,7 @@ export const OpenDisipline:Plugin=async({directory,client})=>{
     if(dependencyAdditions.length)for(const addition of dependencyAdditions)findings.push({rule:"dependency-change",severity:"warn" as const,message:"New dependency \"" + addition.name + "\" is being introduced in " + change.filePath + ". Verify that it is required for the requested behavior, that an existing project dependency cannot provide it, and that the chosen API is supported locally.",evidence:addition.section+": "+addition.name+(addition.value?"@"+addition.value:"")});
     const dependencyEvidence=/\.(ts|tsx|js|jsx|mjs|cjs)$/i.test(change.filePath)&&dependencyInventory
       ?await inspectJavascriptImports(directory,extractImports(change.filePath,change.addedText),dependencyInventory):undefined;
-    findings.push(...registry.runAll({filePath:change.filePath,addedText:change.addedText,removedText:change.removedText,deleted:change.deleted,config,changeFiles:files,testFiles,codeFiles,changeIndex:index,dependencyInventory,dependencyEvidence,dependencyAdditions}));
+    findings.push(...registry.runAll({filePath:change.filePath,addedText:change.addedText,removedText:change.removedText,deleted:change.deleted,config,changeFiles:files,testFiles,codeFiles,changeIndex:index,dependencyInventory,dependencyEvidence,dependencyAdditions,taskIntent:state.taskIntent}));
    }
    const blocking=findings.filter(f=>f.severity==="block");const warnings=findings.filter(f=>f.severity==="warn");
    for(const warning of warnings)console.warn("[open-disipline] "+warning.rule+"\n"+warning.message);
