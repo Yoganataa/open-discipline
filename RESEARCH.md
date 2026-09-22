@@ -112,7 +112,7 @@ Limit: The paper concerns vulnerability repair, not OpenCode plugins. The releva
 | Undeclared or locally unsupported dependencies | Dependency truth | Implemented |
 | Unreviewed dependency introduction | Dependency-change guard | Implemented |
 | Explicit task scope vs actual scope | Scope/intent ledger | Implemented |
-| Root-cause linked to regression evidence | Root-cause/fix evidence | Roadmap |
+| Root-cause linked to regression evidence | Session-local regression evidence ordering | Partial — explicit failure-to-fix linkage remains roadmap because the current V1 boundary does not expose portable command exit status |
 | Malicious repository/task instructions | Untrusted-content / prompt-injection boundary | Roadmap |
 | Child-agent consistency | Subagent enforcement verification | Roadmap |
 | Historical runtime differences | V1 compatibility matrix | Roadmap |
