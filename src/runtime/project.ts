@@ -206,9 +206,9 @@ export function detectDependencyAdditions(change: {
     } else {
       let section: AddedDependencyEvidence["section"] = "unknown";
       for (const line of change.addedText.split(/\r?\n/)) {
-        const header = /^s*"?(dependencies|devDependencies|peerDependencies|optionalDependencies)"?s*:/.exec(line);
+        const header = /^\s*"?(dependencies|devDependencies|peerDependencies|optionalDependencies)"?\s*:/.exec(line);
         if (header) section = header[1] as AddedDependencyEvidence["section"];
-        const match = /^s*"([^"]+)"s*:s*"([^"]+)"/.exec(line);
+        const match = /^\s*"([^"]+)"\s*:\s*"([^"]+)"/.exec(line);
         if (match && section !== "unknown") add(match[1]!, match[2]!, section);
       }
     }
@@ -217,21 +217,21 @@ export function detectDependencyAdditions(change: {
 
   if (file === "requirements.txt" || file === "requirements-dev.txt" || file === "requirements.in" || file === "requirements-dev.in") {
     for (const line of change.addedText.split(/\r?\n/)) {
-      const m = /^s*([A-Za-z0-9][A-Za-z0-9_.-]*)s*(.*)$/.exec(line);
+      const m = /^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)\s*(.*)$/.exec(line);
       if (m && !line.trim().startsWith("#") && !line.trim().startsWith("-")) add(m[1]!, m[2]?.trim(), "python");
     }
   } else if (file === "go.mod") {
     for (const line of change.addedText.split(/\r?\n/)) {
-      const m = /^s*([A-Za-z0-9][^\s]+)\s+(v\S+)/.exec(line);
+      const m = /^\s*([A-Za-z0-9][^\s]+)\s+(v\S+)/.exec(line);
       if (m) add(m[1]!, m[2]!, "go");
     }
   } else if (file === "cargo.toml") {
     let active = false;
     for (const line of change.addedText.split(/\r?\n/)) {
-      const header = /^s*[([^]]+)]/.exec(line)?.[1] ?? "";
+      const header = /^\s*\[([^\]]+)\]/.exec(line)?.[1] ?? "";
       if (header) active = /^(?:.+\.)?(?:dev-)?build-?dependencies$|^dependencies$/.test(header);
       if (!active) continue;
-      const m = /^s*([A-Za-z0-9_-]+)s*=\s*(.+)$/.exec(line);
+      const m = /^\s*([A-Za-z0-9_-]+)\s*=\s*(.+)$/.exec(line);
       if (m) add(m[1]!, m[2]!, "rust");
     }
   } else if (file === "pubspec.yaml") {
@@ -239,7 +239,7 @@ export function detectDependencyAdditions(change: {
     for (const line of change.addedText.split(/\r?\n/)) {
       const header = /^(dependencies|dev_dependencies):\s*$/.exec(line.trim())?.[1];
       if (header) { active = true; continue; }
-      if (active && /^S/.test(line)) active = false;
+      if (active && /^\S/.test(line)) active = false;
       const m = /^\s{2,}([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
       if (active && m) add(m[1]!, m[2]!, "dart");
     }
