@@ -66,9 +66,9 @@ function messageText(message:{parts?:unknown[]}):string {
   }).join("\n").trim();
 }
 
-export function captureLatestUserIntent(output:{messages:unknown[]}):TaskIntent|undefined {
+export function captureInitialUserIntent(output:{messages:unknown[]}):TaskIntent|undefined {
   if(!Array.isArray(output.messages))return;
-  for(let i=output.messages.length-1;i>=0;i--){
+  for(let i=0;i<output.messages.length;i++){
     const candidate=output.messages[i];
     if(!candidate||typeof candidate!=="object")continue;
     const record=candidate as Record<string,unknown>;
