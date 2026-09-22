@@ -1,5 +1,6 @@
 import type { NamingDisciplineConfig, Severity } from "../config.ts";
 import type { DependencyImportEvidence, DependencyInventory } from "../runtime/project.ts";
+import type { TaskIntent } from "../runtime/intent.ts";
 
 export type RuleCategory = "safety"|"integrity"|"scope"|"dependency"|"architecture"|"quality"|"naming";
 
@@ -29,6 +30,7 @@ export interface RuleContext {
   dependencyInventory?:DependencyInventory;
   dependencyEvidence?:DependencyImportEvidence[];
   dependencyAdditions?:{name:string;value?:string;section:string}[];
+  taskIntent?:TaskIntent;
 }
 
 export interface RuleFinding {
