@@ -128,8 +128,8 @@ The universal rule contract is now enforced by the rule registry. Every rule dec
 - [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
 - [x] Dependency-truth baseline: detect undeclared external imports for supported manifests.
 - [x] Configurable architecture boundaries: block explicitly denied imports in configured source layers.
-- [ ] Subagent enforcement verification: test whether the target OpenCode V1 host consistently applies the same guardrails to child sessions.
-- [ ] Compatibility matrix: test the plugin against multiple OpenCode V1 releases instead of using one release as the only runtime assumption.
+- [x] Plugin-boundary subagent enforcement verification: child sessions receive the same core `tool.execute.before` guardrails with isolated state.
+- [x] Source-verified compatibility matrix for OpenCode V1 1.18.14, 1.18.30, and 1.18.31; actual binary smoke remains pending.
 
 ### Dependency truth is local-only
 
@@ -162,7 +162,7 @@ Core enforcement relies on the V1 `tool.execute.before` boundary. Optional hooks
 
 The project is V1-only. Do not add V2 lifecycle APIs.
 
-Before declaring a historical V1 release supported, test the actual host behavior. SDK type compatibility alone is not sufficient evidence of host-hook compatibility.
+See `COMPATIBILITY.md` for the evidence-level matrix. The selected V1 releases have source-level evidence for the core hook and child TaskTool enforcement. Actual binary smoke is intentionally still marked pending; SDK types and host source are not treated as runtime proof.
 
 ## Configuration
 
