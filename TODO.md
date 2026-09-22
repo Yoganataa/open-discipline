@@ -27,6 +27,9 @@ The implementation order is deliberately phased. Do not mark an item complete be
 - [x] Change-surface guard
 - [x] Validation command detection across major ecosystems
 - [x] Test-file/oracle evidence checks
+- [x] Universal rule metadata contract baseline: category/default severity/evidence field
+- [x] Rule finding deduplication across multi-file operations
+- [ ] Universal rule contract: enforce evidence, legitimate exception, bypass analysis, and test requirements
 - [ ] Scope/intent ledger
   - [ ] Record the initial task intent when a reliable V1 message hook is available.
   - [ ] Compare changed paths with the declared/observed task surface.
