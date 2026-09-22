@@ -16,6 +16,8 @@ export interface NamingDisciplineConfig {
   testIntegrity: { enabled: boolean; severity: "warn" | "block"; paths: string[] };
   testEvidence: { enabled: boolean; severity: "warn" | "block"; paths: string[] };
   changeSurface: { enabled: boolean; warnAt: number; blockAt: number };
+  architecture: { enabled: boolean; rules: { from: string; denyImports: string[] }[] };
+  dependencyTruth: { enabled: boolean; severity: "warn" | "block" };
 }
 
 export const DEFAULT_CONFIG: NamingDisciplineConfig = {
@@ -33,6 +35,8 @@ export const DEFAULT_CONFIG: NamingDisciplineConfig = {
   testIntegrity:{enabled:true,severity:"warn",paths:["tests/**","test/**","**/*.test.*","**/*.spec.*","**/__tests__/**"]},
   testEvidence:{enabled:true,severity:"warn",paths:["tests/**","test/**","**/*.test.*","**/*.spec.*","**/__tests__/**"]},
   changeSurface:{enabled:true,warnAt:25,blockAt:100},
+  architecture:{enabled:true,rules:[]},
+  dependencyTruth:{enabled:true,severity:"warn"},
 };
 
 const isRecord=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==="object"&&!Array.isArray(v);
@@ -54,7 +58,7 @@ export function mergeConfig(input?:unknown):NamingDisciplineConfig{
   if(typeof input.caseSensitive==="boolean")base.caseSensitive=input.caseSensitive;
   if(typeof input.autoBrands==="boolean")base.autoBrands=input.autoBrands;
   if(Array.isArray(input.ignoredAutoBrands))base.ignoredAutoBrands=arr(input.ignoredAutoBrands,base.ignoredAutoBrands);
-  const c=section(input,"context"),a=section(input,"allow"),w=section(input,"warn"),b=section(input,"block"),rp=section(input,"readProtection"),ti=section(input,"testIntegrity"),te=section(input,"testEvidence"),cs=section(input,"changeSurface");
+  const c=section(input,"context"),a=section(input,"allow"),w=section(input,"warn"),b=section(input,"block"),rp=section(input,"readProtection"),ti=section(input,"testIntegrity"),te=section(input,"testEvidence"),cs=section(input,"changeSurface"),arch=section(input,"architecture"),dt=section(input,"dependencyTruth");
   if(typeof c.enabled==="boolean")base.context.enabled=c.enabled;
   if(typeof c.includeOnSubsessions==="boolean")base.context.includeOnSubsessions=c.includeOnSubsessions;
   if(typeof c.maxCharacters==="number"&&c.maxCharacters>=500)base.context.maxCharacters=Math.floor(c.maxCharacters);
@@ -80,6 +84,10 @@ export function mergeConfig(input?:unknown):NamingDisciplineConfig{
   if(typeof cs.warnAt==="number"&&cs.warnAt>=1)base.changeSurface.warnAt=Math.floor(cs.warnAt);
   if(typeof cs.blockAt==="number"&&cs.blockAt>=1)base.changeSurface.blockAt=Math.floor(cs.blockAt);
   base.changeSurface.blockAt=Math.max(base.changeSurface.warnAt,base.changeSurface.blockAt);
+  if(typeof arch.enabled==="boolean")base.architecture.enabled=arch.enabled;
+  if(Array.isArray(arch.rules))base.architecture.rules=arch.rules.filter((x):x is {from:string;denyImports:string[]}=>isRecord(x)&&typeof x.from==="string"&&Array.isArray(x.denyImports)&&x.denyImports.every((v)=>typeof v==="string"));
+  if(typeof dt.enabled==="boolean")base.dependencyTruth.enabled=dt.enabled;
+  if(dt.severity==="warn"||dt.severity==="block")base.dependencyTruth.severity=dt.severity;
   return base;
 }
 
