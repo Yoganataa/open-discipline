@@ -59,21 +59,21 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    if(SHELL_TOOLS.has(input.tool)){
     const args=output.args as Record<string,unknown>;const command=typeof args.command==="string"?args.command:"";if(!command)return;
     const destructive=guardShellCommand(command,CORE_INTEGRITY_PATHS);
-    if(destructive){const message="[open-discipline] "+destructive.severity.toUpperCase()+": "+destructive.message;if(destructive.severity==="block"&&config.mode==="strict")throw new Error(message);console.warn(message);}
+    if(destructive){const message="[open-discipline] "+destructive.severity.toUpperCase()+": "+destructive.message;if(destructive.severity==="block"&&config.mode==="strict"){if(smoke.enabled)await smoke.record({type:"guard.result",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,check:"destructive-command",outcome:"blocked",detail:message});throw new Error(message);}console.warn(message);if(smoke.enabled)await smoke.record({type:"guard.result",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,check:"destructive-command",outcome:"warning",detail:message});}
     for(const guard of commandPatterns){guard.regex.lastIndex=0;if(!guard.regex.test(command))continue;const message="[open-discipline] "+(config.mode==="strict"?"BLOCK":"WARN")+": command matches configured guard: "+guard.source;if(config.mode==="strict")throw new Error(message);console.warn(message);}
     if(isValidationCommand(command)){const state=await restoreState(input.sessionID);state.validationAttempted++;const key=validationKey(command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");await persistState(input.sessionID);}
     return;
    }
    if(input.tool==="read"&&config.readProtection.enabled){
     const args=output.args as Record<string,unknown>;const path=typeof args.filePath==="string"?args.filePath:"";
-    if(path&&matchesPath(path,config.readProtection.paths)&&!matchesPath(path,config.readProtection.allowPaths))throw new Error("[open-discipline] BLOCK: protected-file read: "+path);
+    if(path&&matchesPath(path,config.readProtection.paths)&&!matchesPath(path,config.readProtection.allowPaths)){if(smoke.enabled)await smoke.record({type:"guard.result",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,check:"protected-read",outcome:"blocked",detail:"Protected-file read: "+path});throw new Error("[open-discipline] BLOCK: protected-file read: "+path);}
     return;
    }
    if(!FILE_TOOLS.has(input.tool))return;
    const changes=extractChanges(input.tool,output.args as Record<string,unknown>);if(!changes.length)return;
    const guarded=changes.filter(change=>!matchesPath(change.filePath,config.allow.paths));
    const integrityChange=guarded.find(change=>isCoreIntegrityPath(change.filePath));
-   if(integrityChange)throw new Error("[open-discipline] BLOCK: guardrail implementation/configuration is protected from agent modification: "+integrityChange.filePath);
+   if(integrityChange){if(smoke.enabled)await smoke.record({type:"guard.result",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,check:"guardrail-integrity",outcome:"blocked",detail:"Protected write: "+integrityChange.filePath});throw new Error("[open-discipline] BLOCK: guardrail implementation/configuration is protected from agent modification: "+integrityChange.filePath);}
    const state=await restoreState(input.sessionID);state.changed=true;
    state.codeChanged ||= guarded.some(change=>config.codeFileExtensions.includes(change.filePath.slice(change.filePath.lastIndexOf("."))));
    state.testChanged ||= guarded.some(change=>config.testIntegrity.paths.some(pattern=>matchesPath(change.filePath,[pattern])));
