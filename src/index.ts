@@ -11,6 +11,9 @@ import { matchesPath, normalizePath } from "./scanners/paths.ts";
 import { suppressionRule } from "./rules/suppressions.ts";
 import { guardShellCommand, isValidationCommand, validationKey } from "./runtime/command.ts";
 import { createSessionState } from "./runtime/session-state.ts";
+import { architectureRule } from "./rules/architecture.ts";
+import { dependencyTruthRule } from "./rules/dependencies.ts";
+import { discoverDependencies } from "./runtime/project.ts";
 
 const FILE_TOOLS = new Set(["write", "edit", "apply_patch"]);
 const CORE_INTEGRITY_PATHS = [
@@ -31,6 +34,7 @@ function isCoreIntegrityPath(path: string): boolean {
 
 export const OpenDisipline: Plugin = async ({ directory, client }) => {
   const config: NamingDisciplineConfig = await loadConfig(directory);
+  const dependencyInventory = config.dependencyTruth.enabled ? await discoverDependencies(directory) : undefined;
   const registry = new RuleRegistry();
   registry.register(protectedFilesRule);
   registry.register(namingRule);
@@ -39,6 +43,8 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
   registry.register(testEvidenceRule);
   registry.register(suppressionRule);
   registry.register(changeSurfaceRule);
+  if (config.architecture.enabled) registry.register(architectureRule);
+  if (config.dependencyTruth.enabled) registry.register(dependencyTruthRule);
 
   const sessionStates = new Map<string, ReturnType<typeof createSessionState>>();
   const getState = (sessionID: string) => {
@@ -116,6 +122,7 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
           testFiles,
           codeFiles,
           changeIndex: index,
+          dependencyInventory,
         }));
       }
       const blocking = findings.filter((finding) => finding.severity === "block");
