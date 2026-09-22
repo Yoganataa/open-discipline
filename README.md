@@ -1,4 +1,4 @@
-# open-disipline
+# open-discipline
 
 A focused OpenCode V1 engineering-discipline plugin. It combines low-noise policy context with deterministic tool-boundary guardrails.
 
@@ -8,7 +8,7 @@ The project is intentionally conservative: it prefers a useful warning over spec
 
 Agentic coding failures are often not syntax failures. The recurring problems are scope drift, test gaming, swallowed errors, secret leakage, unsafe reads, speculative refactors, repeated failed attempts, and declaring a task complete without sufficient evidence.
 
-OpenDisipline treats these as engineering-control problems. It does not attempt to judge whether an entire implementation is semantically correct with regexes. Instead, it blocks or warns on observable evidence and requires stronger evidence as the project matures.
+OpenDiscipline treats these as engineering-control problems. It does not attempt to judge whether an entire implementation is semantically correct with regexes. Instead, it blocks or warns on observable evidence and requires stronger evidence as the project matures.
 
 ## Guardrails
 
@@ -32,7 +32,7 @@ OpenDisipline treats these as engineering-control problems. It does not attempt 
 
 ## Design
 
-OpenDisipline has two paths:
+OpenDiscipline has two paths:
 
 1. Context guidance: a short policy is injected into the first user message and is idempotent.
 2. Enforcement: deterministic checks run before consequential tool operations.
@@ -45,7 +45,7 @@ The important design rule is:
 
 ## Anti-bypass model
 
-OpenDisipline does not treat an agent's proposed workaround as a valid fix.
+OpenDiscipline does not treat an agent's proposed workaround as a valid fix.
 
 When a guard rejects a change, the intended response is to change the implementation so the evidence that triggered the guard disappears for a legitimate reason.
 
@@ -57,7 +57,7 @@ The plugin also protects its own core implementation/configuration paths from no
 - `src/core/**`
 - `src/rules/**`
 - `src/scanners/**`
-- `.opencode/plugins/open-disipline.ts`
+- `.opencode/plugins/open-discipline.ts`
 
 This is deliberately stronger than asking the model not to modify the guard.
 
@@ -87,7 +87,7 @@ failure
   -> complete only with evidence
 ```
 
-OpenDisipline cannot prove semantic correctness from source text alone. It deliberately reports this boundary instead of pretending that a regex can prove a bug is fixed.
+OpenDiscipline cannot prove semantic correctness from source text alone. It deliberately reports this boundary instead of pretending that a regex can prove a bug is fixed.
 
 ## Agentic failure roadmap
 
@@ -146,7 +146,7 @@ The dependency evidence layer is deliberately offline. JavaScript dependencies u
 
 ## Runtime safety and evidence
 
-Completion evidence is intentionally conservative. OpenDisipline observes validation commands and warns when code changes reach `session.idle` without a detected validation attempt. It does not claim that a command passed when the V1 event schema does not expose a portable exit code.
+Completion evidence is intentionally conservative. OpenDiscipline observes validation commands and warns when code changes reach `session.idle` without a detected validation attempt. It does not claim that a command passed when the V1 event schema does not expose a portable exit code.
 
 The command guard blocks destructive Git operations, force-pushes, dangerous recursive deletion, bulk deletion, and shell writes targeting protected guardrail paths. Custom `commandGuards` remain available for repository-specific commands.
 
@@ -195,7 +195,7 @@ Use `advisory` mode during rollout when you want diagnostics without blocking wr
 
 ## Why the plugin is conservative
 
-False positives destroy trust in a guardrail. OpenDisipline therefore prefers:
+False positives destroy trust in a guardrail. OpenDiscipline therefore prefers:
 
 - BLOCK when the evidence is strong and the operation is clearly unsafe;
 - WARN when context is ambiguous;
