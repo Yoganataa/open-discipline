@@ -27,7 +27,7 @@ export const DEFAULT_CONFIG: NamingDisciplineConfig = {
   allow:{identifiers:[],patterns:["^[A-Za-z][A-Za-z0-9+.-]*://","^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){2,}$"],paths:["node_modules/**","dist/**","build/**",".git/**","vendor/**","generated/**"],suffixes:["SDK","API","CLI"]},
   warn:{patterns:[],ambiguousSuffixes:["Client","Manager","Service","Handler","Helper","Wrapper","Adapter"]},
   block:{patterns:[]},
-  codeFileExtensions:[".ts",".tsx",".js",".jsx",".mjs",".cjs",".go",".py",".kt"],
+  codeFileExtensions:[".ts",".tsx",".js",".jsx",".mjs",".cjs",".go",".py",".pyi",".kt",".kts",".java",".rs",".cs",".fs",".fsx",".dart",".swift",".c",".h",".cc",".cpp",".cxx",".hpp",".xml"],
   ignoreExtensions:[".md",".mdx",".txt",".json",".jsonc",".yml",".yaml",".lock"],
   qualifierSuggestions:{Settings:["Account","Server","Device","Application"],Client:["Http","Api","Database","Storage"],Manager:["Session","Connection","Resource","State"],Service:["Payment","Notification","Auth","Sync"]},
   protectedPaths:[],commandGuards:[],
