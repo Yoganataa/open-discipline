@@ -54,6 +54,21 @@ For each research-derived control:
   - [ ] Verify the regression test was present before the implementation fix or was introduced as part of the fix.
   - [ ] Never claim semantic correctness from source text alone.
 
+## Phase 1.5 — Agentic workflow layer
+
+The workflow layer adopts proven process patterns without installing or embedding a third-party methodology. It is instruction/skill driven; BLOCK/WARN enforcement remains in the guardrail kernel.
+
+- [ ] Define Workflow v1 lifecycle and complexity levels (L0-L3).
+- [ ] Define plan-scoped workflow artifacts: intent, requirements/bug analysis, design, implementation plan, tasks, verification, walkthrough.
+- [ ] Add native OpenCode skill for selecting the appropriate workflow level.
+- [ ] Add task traceability: requirements -> tasks -> validation evidence.
+- [ ] Add per-task spec-compliance and code-quality review guidance.
+- [ ] Add final end-user verification and walkthrough guidance.
+- [ ] Add artifact-retention policy so completed work leaves useful handoff evidence without permanent planning clutter.
+- [ ] Test workflow skill/document structure in CI.
+- [ ] Validate workflow against representative feature, bugfix, refactor, and trivial-task fixtures.
+
+
 ## Phase 2 — Ecosystem adapters
 
 The core rules stay language-agnostic. Adapters only translate ecosystem-specific evidence into the common rule model.
@@ -154,6 +169,8 @@ The core rules stay language-agnostic. Adapters only translate ecosystem-specifi
 ## Phase 4 — Agent trajectory controls
 
 - [x] Validation repetition warning
+- [ ] Workflow-aware progress ledger: distinguish planned task state from observed implementation/validation evidence.
+- [ ] Meaningful-progress detection across repeated edits
 - [ ] Meaningful-progress detection across repeated edits
 - [ ] Failure-loop breaker when actual failure evidence is available
 - [ ] Abandoned/speculative change detection
@@ -180,12 +197,13 @@ The core rules stay language-agnostic. Adapters only translate ecosystem-specifi
 - [x] Supplementary permission hook
 - [x] Optional context transform
 - [ ] Capability matrix across selected V1 releases
-- [ ] Historical V1 smoke tests
+- [ ] Latest-stable binary smoke test with verified release artifact
+- [ ] Historical V1 smoke tests (research/regression only)
 - [ ] Child-session/subagent enforcement verification
 - [ ] Graceful degradation tests for missing optional hooks
 - [ ] Host-specific regression tracking
 
-## Phase 7 — Quality and maintainability
+## Phase 7 — Quality, workflow quality, and maintainability
 
 - [ ] Rule false-positive corpus
 - [ ] Cross-language fixture corpus
