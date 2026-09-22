@@ -15,7 +15,7 @@ import { createSessionState } from "./runtime/session-state.ts";
 import { architectureRule } from "./rules/architecture.ts";
 import { dependencyTruthRule } from "./rules/dependencies.ts";
 import { detectDependencyAdditions, discoverDependencies, inspectJavascriptImports } from "./runtime/project.ts";
-import { captureLatestUserIntent } from "./runtime/intent.ts";
+import { captureInitialUserIntent } from "./runtime/intent.ts";
 
 const FILE_TOOLS=new Set(["write","edit","apply_patch"]);
 const SHELL_TOOLS=new Set(["bash","sh","zsh","fish","powershell","pwsh","cmd","shell"]);
@@ -39,7 +39,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    if(firstIntent){const state=getState(firstIntent.sessionID);if(!state.taskIntent)state.taskIntent=firstIntent;}
    if(!config.enabled||!config.context.enabled||!output.messages.length)return;
    const firstUser=output.messages.find(message=>message.info.role==="user");if(!firstUser||!firstUser.parts.length)return;
-   if(firstUser.parts.some(part=>part.type==="text"&&part.text.includes("[Open Disipline engineering policy]")))return;
+   if(firstUser.parts.some(part=>part.type==="text"&&part.text.includes("[Open Discipline engineering policy]")))return;
    const context=buildPolicyContext(config);if(!context)return;
    const firstText=firstUser.parts.find(part=>part.type==="text");if(!firstText)return;
    firstUser.parts.unshift({...firstText,text:context});
@@ -99,7 +99,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
   "permission.ask":async(input,output)=>{
    if(!config.enabled||!config.readProtection.enabled||input.type!=="read")return;const path=typeof input.pattern==="string"?input.pattern:"";
    if(!path||!matchesPath(path,config.readProtection.paths)||matchesPath(path,config.readProtection.allowPaths))return;output.status="deny";
-   try{await client.app.log({body:{service:"open-disipline",level:"warn",message:"Blocked protected-file read",extra:{path}}});}catch{}
+   try{await client.app.log({body:{service:"open-discipline",level:"warn",message:"Blocked protected-file read",extra:{path}}});}catch{}
   },
  };
 };
