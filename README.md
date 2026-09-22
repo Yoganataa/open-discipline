@@ -118,8 +118,8 @@ This roadmap is part of the project. A feature is considered useful only when it
 
 - [x] Completion-evidence warning: detect code changes that reach session idle without a validation command.
 - [x] Validation-repetition warning: detect repeated identical validation attempts; V1 does not expose a portable command exit code through `command.executed`, so this deliberately does not claim to prove failure.
-- [ ] Dependency API/version truth: verify package API/version claims against installed metadata or lockfiles without network access.
-- [ ] Dependency-change guard: flag unnecessary new dependencies and suspicious dependency changes.
+- [x] Dependency API/version truth: verify JavaScript imports against local installed metadata/resolution and package-lock manifest truth without network access.
+- [x] Dependency-change guard: flag newly introduced manifest dependencies for explicit necessity/API review.
 - [ ] Scope/intent ledger: compare the requested task surface with the actual changed surface instead of relying only on file-count thresholds.
 - [ ] Root-cause/fix evidence: connect a reported failure to a regression test and the implementation change that addresses it.
 - [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
@@ -127,6 +127,10 @@ This roadmap is part of the project. A feature is considered useful only when it
 - [x] Configurable architecture boundaries: block explicitly denied imports in configured source layers.
 - [ ] Subagent enforcement verification: test whether the target OpenCode V1 host consistently applies the same guardrails to child sessions.
 - [ ] Compatibility matrix: test the plugin against multiple OpenCode V1 releases instead of using one release as the only runtime assumption.
+
+### Dependency truth is local-only
+
+The dependency evidence layer is deliberately offline. JavaScript dependencies use the local `package.json`, `package-lock.json`, Node module resolution, and installed package metadata when available. A declared dependency whose requested import cannot be resolved locally produces a warning rather than an invented API/version claim. New dependency declarations are also surfaced for review; the plugin does not decide that a package is unnecessary merely from source text.
 
 ### Deliberately not planned
 
