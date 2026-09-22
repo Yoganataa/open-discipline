@@ -18,11 +18,10 @@ function cleanCandidate(value:string):string {
   return value
     .trim()
     .replace(/^[\x60"'([{<]+/,"")
-    .replace(/[\x60"'\\)]},;:]+$/,"")
+    .replace(/[\x60"'\\)]},;:,.!?]+$/,"")
     .replace(/[。！？]+$/u,"")
     .trim();
 }
-
 function looksLikePath(value:string):boolean {
   if(!value||value.includes("://")||/^[A-Za-z]:[\\/]/.test(value))return false;
   const normalized=normalizePath(value);
