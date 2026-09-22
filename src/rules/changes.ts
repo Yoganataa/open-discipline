@@ -36,14 +36,16 @@ export const testEvidenceRule: DisciplineRule = {
   id: "test-evidence",
   check(ctx: RuleContext): RuleFinding[] {
     const cfg = ctx.config.testEvidence;
-    if (!cfg.enabled || ctx.changeIndex !== 0 || !ctx.codeFiles?.length) return [];
+    if (!cfg.enabled || !ctx.codeFiles?.length) return [];
     const severity = cfg.severity === "block" && ctx.config.mode === "strict" ? "block" : "warn";
-    if (!ctx.testFiles?.length) {
-      return [{ rule: "test-evidence", severity, message: `This operation changes code but no test file was changed. Add or update a regression test when behavior changed, or explicitly verify why existing test coverage is sufficient.` }];
+    if (ctx.changeIndex === 0 && !ctx.testFiles?.length) {
+      return [{ rule: "test-evidence", severity, message: "This operation changes code but no test file was changed. Add or update a regression test when behavior changed, or explicitly verify why existing test coverage is sufficient." }];
     }
-    const assertionLike = /\b(?:expect|assert|require|assert_eq|assert_ne|assert!|should|toHave|toBe|toEqual|Assert\.)\b|\bassert\s*\(/i;
-    if (matchesPath(ctx.filePath, cfg.paths) && !assertionLike.test(ctx.addedText)) {
-      return [{ rule: "test-evidence", severity: "warn", message: "A test file changed alongside code, but the added patch contains no recognizable assertion/oracle. Verify that the regression test actually exercises the behavior being fixed." }];
+    if (ctx.testFiles?.length && matchesPath(ctx.filePath, cfg.paths)) {
+      const assertionLike = /\b(?:expect|assert|require|assert_eq|assert_ne|assert!|should|toHave|toBe|toEqual|Assert\.)\b|\bassert\s*\(/i;
+      if (!assertionLike.test(ctx.addedText)) {
+        return [{ rule: "test-evidence", severity: "warn", message: "A test file changed alongside code, but the added patch contains no recognizable assertion/oracle. Verify that the regression test actually exercises the behavior being fixed." }];
+      }
     }
     return [];
   },
