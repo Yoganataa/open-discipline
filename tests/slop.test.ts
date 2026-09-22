@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mergeConfig } from "../src/config.ts";
 import { slopRule } from "../src/rules/slop.ts";
+import { suppressionRule } from "../src/rules/suppressions.ts";
 
 const code = (addedText: string) => ({ filePath: "src/FooRepository.ts", addedText, config: mergeConfig({}) });
 
@@ -22,7 +23,8 @@ test("blocks empty python except-pass", () => {
 test("warns on debug residue and type ignores", () => {
   const fs = slopRule.check(code("console.log(x); debugger; // @ts-ignore"));
   assert.ok(fs.some((f) => f.rule === "slop:debug-residue"));
-  assert.ok(fs.some((f) => f.rule === "slop:type-ignore"));
+  const suppression = suppressionRule.check(code("// @ts-ignore"));
+  assert.ok(suppression.some((f) => f.rule === "suppression"));
 });
 
 test("blocks secret patterns", () => {
