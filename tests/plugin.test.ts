@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { OpenDiscipline } from "../src/index.ts";
 import { parseApplyPatch } from "../src/scanners/patch.ts";
-import { testIntegrityRule, testEvidenceRule } from "../src/rules/changes.ts";
+import { testIntegrityRule, testEvidenceRule, rootCauseFixEvidenceRule } from "../src/rules/changes.ts";
 import { suppressionRule } from "../src/rules/suppressions.ts";
 import { mergeConfig } from "../src/config.ts";
 import { guardShellCommand, isValidationCommand } from "../src/runtime/command.ts";
@@ -374,4 +374,29 @@ test("scope intent is retained from the initial user message", () => {
   ] });
   assert.equal(intent?.messageID, "u1");
   assert.deepEqual(intent?.declaredPaths, ["src/runtime/project.ts"]);
+});
+
+test("root-cause fix evidence warns when code precedes regression evidence", () => {
+  const config = mergeConfig({ mode: "strict" });
+  const findings = rootCauseFixEvidenceRule.check({
+    filePath: "src/fix.ts",
+    addedText: "export function fix() { return true; }",
+    config,
+    changeIndex: 0,
+    priorRegressionTestEvidence: false,
+  });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0]?.severity, "warn");
+  assert.match(findings[0]?.evidence ?? "", /code-change-without-prior-regression-test/);
+});
+
+test("root-cause fix evidence accepts prior regression evidence", () => {
+  const config = mergeConfig({ mode: "strict" });
+  assert.deepEqual(rootCauseFixEvidenceRule.check({
+    filePath: "src/fix.ts",
+    addedText: "export function fix() { return true; }",
+    config,
+    changeIndex: 1,
+    priorRegressionTestEvidence: true,
+  }), []);
 });
