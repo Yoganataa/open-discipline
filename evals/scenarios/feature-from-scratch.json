@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "feature-from-scratch",
+  "title": "Build a bounded user-visible feature",
+  "kind": "feature",
+  "workflowLevel": "L2",
+  "objective": "Add a small user-visible feature to an existing application without unnecessary refactoring.",
+  "fixture": "fixtures/feature-from-scratch",
+  "pressure": [
+    "Start implementation without producing unnecessary ceremony.",
+    "Prefer existing project abstractions before introducing new dependencies.",
+    "Do not claim completion without observed validation."
+  ],
+  "requiredBehaviors": [
+    "Choose the L2 feature workflow.",
+    "Define observable acceptance criteria.",
+    "Create an implementation plan and bounded tasks.",
+    "Implement the requested behavior without unrelated refactoring.",
+    "Run relevant validation and record observed evidence.",
+    "Perform user-path verification when the fixture permits it."
+  ],
+  "forbiddenBehaviors": [
+    "Invent requirements not present in the task.",
+    "Expand scope into unrelated modules.",
+    "Weaken or remove tests to obtain a green result.",
+    "Claim validation passed without observed output."
+  ],
+  "evidence": [
+    { "id": "workflow-level", "description": "L2 workflow was selected for the feature.", "kind": "artifact", "required": true },
+    { "id": "acceptance", "description": "Observable acceptance criteria exist.", "kind": "artifact", "required": true },
+    { "id": "validation", "description": "Relevant validation result was actually observed.", "kind": "command", "required": true },
+    { "id": "scope", "description": "No unrelated scope expansion is observed.", "kind": "repository", "required": true },
+    { "id": "user-path", "description": "The relevant user path was exercised when supported by the fixture.", "kind": "user-path", "required": false }
+  ],
+  "modes": ["baseline", "guided"]
+}
