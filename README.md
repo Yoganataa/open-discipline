@@ -124,7 +124,7 @@ The universal rule contract is now enforced by the rule registry. Every rule dec
 - [x] Dependency API/version truth: verify JavaScript imports against local installed metadata/resolution and package-lock manifest truth without network access.
 - [x] Dependency-change guard: flag newly introduced manifest dependencies for explicit necessity/API review.
 - [x] Scope/intent ledger: compare explicitly declared task paths with the actual changed surface; when no explicit path evidence exists, retain change-surface evidence instead of inferring intent.
-- [ ] Root-cause/fix evidence: connect a reported failure to a regression test and the implementation change that addresses it.
+- [x] Session-local regression evidence ordering: warn when code changes occur before observable regression-test evidence; failure-to-fix linkage remains pending because OpenCode V1 does not expose a portable command exit status.
 - [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
 - [x] Dependency-truth baseline: detect undeclared external imports for supported manifests.
 - [x] Configurable architecture boundaries: block explicitly denied imports in configured source layers.
