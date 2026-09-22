@@ -93,8 +93,3 @@ export function validationKey(command: string): string {
   return command.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 500);
 }
 
-export function validationPassed(metadata: unknown): boolean {
-  if (!metadata || typeof metadata !== "object") return false;
-  const m = metadata as Record<string, unknown>;
-  return m.exit === 0 || m.exitCode === 0 || m.code === 0 || m.status === "success" || m.status === "completed";
-}
