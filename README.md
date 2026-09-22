@@ -114,13 +114,13 @@ This roadmap is part of the project. A feature is considered useful only when it
 
 ### Next priority
 
-- [ ] Completion-evidence gate: require explicit validation evidence before an agent can reasonably claim a task is complete.
-- [ ] Failure-loop breaker: detect repeated attempts against the same failing validation without meaningful progress.
+- [x] Completion-evidence warning: detect code changes that reach session idle without a validation command.
+- [x] Validation-repetition warning: detect repeated identical validation attempts; V1 does not expose a portable command exit code through `command.executed`, so this deliberately does not claim to prove failure.
 - [ ] Dependency-truth guard: detect guessed/nonexistent package APIs or version assumptions before they become implementation churn.
 - [ ] Dependency-change guard: flag unnecessary new dependencies and suspicious dependency changes.
 - [ ] Scope/intent ledger: compare the requested task surface with the actual changed surface instead of relying only on file-count thresholds.
 - [ ] Root-cause/fix evidence: connect a reported failure to a regression test and the implementation change that addresses it.
-- [ ] Safer shell/destructive-command guard: protect high-risk file operations and guardrail paths when commands are used instead of file tools.
+- [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
 - [ ] Subagent enforcement verification: test whether the target OpenCode V1 host consistently applies the same guardrails to child sessions.
 - [ ] Compatibility matrix: test the plugin against multiple OpenCode V1 releases instead of using one release as the only runtime assumption.
 
@@ -132,6 +132,14 @@ This roadmap is part of the project. A feature is considered useful only when it
 - [ ] Network-based source analysis in the enforcement hot path.
 - [ ] V2 lifecycle APIs in the V1 plugin.
 - [ ] A giant collection of heuristic rules with unclear false-positive behavior.
+
+## Runtime safety and evidence
+
+Completion evidence is intentionally conservative. OpenDisipline observes validation commands and warns when code changes reach `session.idle` without a detected validation attempt. It does not claim that a command passed when the V1 event schema does not expose a portable exit code.
+
+The command guard blocks destructive Git operations, force-pushes, dangerous recursive deletion, bulk deletion, and shell writes targeting protected guardrail paths. Custom `commandGuards` remain available for repository-specific commands.
+
+Validation detection covers common ecosystems including npm/pnpm/yarn/bun, pytest/mypy/pyright/ruff, Go, Cargo, .NET, Gradle/Maven, Flutter/Dart, Swift/Xcode, and CMake/CTest.
 
 ## OpenCode V1 compatibility
 
