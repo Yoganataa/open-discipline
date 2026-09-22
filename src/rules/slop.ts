@@ -10,12 +10,6 @@ interface SlopPattern {
   re: RegExp;
 }
 
-/**
- * Deterministic scans of the added text for the failure modes agentic AI
- * reproduces most often (see research catalogue ai-development-pitfalls):
- * silent error handling, debug leftovers, silenced type errors, and secrets.
- * Each pattern is chosen to have near-zero false positives on a new write.
- */
 const PATTERNS: SlopPattern[] = [
   {
     id: "empty-catch",
@@ -49,19 +43,25 @@ const PATTERNS: SlopPattern[] = [
 
 export const slopRule: DisciplineRule = {
   id: "slop",
+  category: "quality",
+  defaultSeverity: "warn",
+  contract: {
+    evidence: "Added text contains a deterministic pattern for swallowed errors, credential-shaped material, debug residue, or unresolved TODO markers.",
+    legitimateException: "Intentional examples outside executable guarded code are outside this rule; the executable-code checks have no broad bypass because their evidence is intentionally conservative.",
+    bypassAnalysis: "Regex-only detection can miss obfuscated or dynamically constructed forms. Changing surface syntax to evade a match is not evidence that the underlying risk is absent.",
+    testRequirements: {
+      positive: "Detect each major slop pattern in representative source for its supported ecosystem.",
+      negative: "Do not report unrelated ordinary source text.",
+      exception: "Keep non-code example/configuration cases outside the code-only checks and verify secret-shaped material degrades to WARN there.",
+    },
+  },
   check(ctx: RuleContext): RuleFinding[] {
     if (!ctx.config.enabled) return [];
     const ext = getExtension(ctx.filePath);
     const isCode = ctx.config.codeFileExtensions.includes(ext);
     const findings: RuleFinding[] = [];
     for (const p of PATTERNS) {
-      // Secrets live in string literals, so keep the raw source for this rule.
-      // The other patterns intentionally remain text-based and conservative.
       if (!p.re.test(ctx.addedText)) continue;
-      // Non-code files (config/.env/rules/docs) legitimately hold secrets in
-      // dev, so only the secret pattern applies there — and it warns instead of
-      // blocking, because a credential-shaped string in a config may be
-      // intentional (e.g. MCP headers). The full scan stays code-only.
       if (!isCode && p.id !== "secret") continue;
       const severity: Severity =
         p.id === "secret" && !isCode
@@ -69,7 +69,12 @@ export const slopRule: DisciplineRule = {
           : p.severity === "block" && ctx.config.mode !== "strict"
             ? "warn"
             : p.severity;
-      findings.push({ rule: `slop:${p.id}`, severity, message: `${p.label}. ${p.reason}` });
+      findings.push({
+        rule: `slop:${p.id}`,
+        severity,
+        message: `${p.label}. ${p.reason}`,
+        evidence: p.id === "secret" ? "credential-shaped token pattern" : p.id,
+      });
     }
     return findings;
   },
