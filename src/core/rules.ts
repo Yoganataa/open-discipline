@@ -9,6 +9,7 @@ export interface RuleContext {
   testFiles?:string[];
   codeFiles?:string[];
   changeIndex?:number;
+  dependencyInventory?: { javascript:string[]; python:string[]; go:string[]; rust:string[]; dart:string[] };
 }
 export interface RuleFinding { rule:string; severity:Severity; message:string; }
 export interface DisciplineRule { id:string; check(ctx:RuleContext):RuleFinding[]; }
