@@ -1,8 +1,8 @@
-# OpenDisipline Research Basis
+# OpenDiscipline Research Basis
 
-OpenDisipline is designed as an engineering-control response to recurring failure modes observed in autonomous and agentic coding systems.
+OpenDiscipline is designed as an engineering-control response to recurring failure modes observed in autonomous and agentic coding systems.
 
-This document records external research that materially informs the roadmap. It is not a claim that every study proves a specific OpenDisipline rule. Each study is mapped only to the failure mode and control boundary that the evidence supports.
+This document records external research that materially informs the roadmap. It is not a claim that every study proves a specific OpenDiscipline rule. Each study is mapped only to the failure mode and control boundary that the evidence supports.
 
 ## Core design principle
 
@@ -10,7 +10,7 @@ The research points toward a consistent engineering pattern:
 
 research finding -> observable failure mode -> deterministic evidence -> WARN/BLOCK according to certainty -> legitimate-exception path -> positive/negative/exception tests -> CI validation
 
-OpenDisipline deliberately does not attempt to prove semantic correctness from source text alone.
+OpenDiscipline deliberately does not attempt to prove semantic correctness from source text alone.
 
 ## Research findings
 
@@ -20,7 +20,7 @@ Kozak, Zilouchian Moghaddam, and Sivaraman (2025) evaluated more than 12,000 age
 
 Source: https://arxiv.org/abs/2507.09329
 
-OpenDisipline response:
+OpenDiscipline response:
 
 | Failure mode | Control |
 |---|---|
@@ -37,7 +37,7 @@ IssueTrojanBench (2026) evaluates malicious issue requests against modern coding
 
 Source: https://arxiv.org/abs/2607.20759
 
-OpenDisipline response:
+OpenDiscipline response:
 
 | Failure mode | Control / roadmap |
 |---|---|
@@ -46,7 +46,7 @@ OpenDisipline response:
 | Tool outputs become implicit instructions | Tool-output trust classification — Phase 5 |
 | Guardrails exist only as model instructions | Tool-boundary enforcement already implemented |
 
-Limit: OpenDisipline cannot make untrusted text trustworthy merely by labeling it. This research supports a trust-boundary architecture, not a claim that regex filtering solves prompt injection.
+Limit: OpenDiscipline cannot make untrusted text trustworthy merely by labeling it. This research supports a trust-boundary architecture, not a claim that regex filtering solves prompt injection.
 
 ### 3. Agent-authored dependency changes can increase supply-chain risk
 
@@ -54,7 +54,7 @@ Singla et al. (2026) studied 117,062 dependency changes across seven ecosystems.
 
 Source: https://arxiv.org/abs/2601.00205
 
-OpenDisipline response:
+OpenDiscipline response:
 
 | Failure mode | Control |
 |---|---|
@@ -71,7 +71,7 @@ Vergopoulos, Müller, and Vechev (2025) introduced broader repository-level codi
 
 Source: https://arxiv.org/abs/2503.07701
 
-OpenDisipline response:
+OpenDiscipline response:
 
 | Failure mode | Control |
 |---|---|
@@ -88,7 +88,7 @@ Kulsum et al. (2024) evaluated automated vulnerability repair and reported that 
 
 Source: https://arxiv.org/abs/2405.15690
 
-OpenDisipline response:
+OpenDiscipline response:
 
 | Failure mode | Control |
 |---|---|
@@ -101,7 +101,7 @@ Limit: The paper concerns vulnerability repair, not OpenCode plugins. The releva
 
 ## Research-to-roadmap traceability
 
-| Research-derived failure mode | OpenDisipline control | Status |
+| Research-derived failure mode | OpenDiscipline control | Status |
 |---|---|---|
 | Unsafe tool actions | Tool-boundary enforcement | Implemented |
 | Sensitive information exposure | Protected reads / secret detection | Implemented |
@@ -121,7 +121,7 @@ Limit: The paper concerns vulnerability repair, not OpenCode plugins. The releva
 
 A research result does not directly become a regex.
 
-For every new control, OpenDisipline requires:
+For every new control, OpenDiscipline requires:
 
 1. a documented failure mode;
 2. an observable evidence definition;
@@ -141,7 +141,7 @@ A control that cannot answer both questions should remain experimental or warnin
 
 ## Non-claims
 
-The research does not establish that OpenDisipline:
+The research does not establish that OpenDiscipline:
 
 - proves semantic correctness;
 - prevents every prompt injection;
