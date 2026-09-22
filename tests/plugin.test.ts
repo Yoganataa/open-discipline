@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { OpenDisipline } from "../src/index.ts";
 import { parseApplyPatch } from "../src/scanners/patch.ts";
-import { testIntegrityRule } from "../src/rules/changes.ts";
+import { testIntegrityRule, testEvidenceRule } from "../src/rules/changes.ts";
 import { suppressionRule } from "../src/rules/suppressions.ts";
 import { mergeConfig } from "../src/config.ts";
 import { guardShellCommand, isValidationCommand } from "../src/runtime/command.ts";
@@ -193,4 +193,21 @@ test("dependency rule and architecture boundary are deterministic", () => {
     config,
   });
   assert.equal(architectureFindings.length, 1);
+});
+
+
+test("regression evidence warns when changed test has no recognizable oracle", () => {
+  const config = mergeConfig({
+    mode: "strict",
+    testEvidence: { enabled: true, severity: "warn", paths: ["tests/**"] },
+  });
+  const findings = testEvidenceRule.check({
+    filePath: "tests/fix.test.ts",
+    addedText: "describe(\"fix\", () => { it(\"runs\", () => { doThing(); }); });",
+    config,
+    codeFiles: ["src/fix.ts"],
+    testFiles: ["tests/fix.test.ts"],
+    changeIndex: 1,
+  });
+  assert.ok(findings.some((x) => x.message.includes("assertion/oracle")));
 });
