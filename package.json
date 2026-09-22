@@ -5,11 +5,15 @@
   "description": "OpenCode V1 engineering-discipline plugin with deterministic guardrails and low-noise agent context.",
   "type": "module",
   "main": "src/index.ts",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "eval:validate": "node --experimental-strip-types --test tests/evals.test.ts"
+    "eval:validate": "node --experimental-strip-types --test tests/evals.test.ts",
+    "smoke:opencode": "node scripts/smoke-opencode.mjs",
+    "smoke:report": "node scripts/smoke-report.mjs"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.18.30",
