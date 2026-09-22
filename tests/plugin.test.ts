@@ -220,6 +220,12 @@ test("rule registry deduplicates identical findings", () => {
     id: "duplicate-a",
     category: "quality",
     defaultSeverity: "warn",
+    contract: {
+      evidence: "test evidence",
+      legitimateException: "test exception",
+      bypassAnalysis: "test bypass",
+      testRequirements: { positive: "positive", negative: "negative", exception: "exception" },
+    },
     check: () => [
       { rule: "same", severity: "warn", message: "same evidence", evidence: "x" },
       { rule: "same", severity: "warn", message: "same evidence", evidence: "x" },
@@ -251,4 +257,40 @@ test("dependency addition detector distinguishes existing and new package entrie
     source: "write"
   }, ["existing-package"]);
   assert.deepEqual(additions.map(x => x.name), ["new-package"]);
+});
+
+
+test("rule registry enforces universal contracts and finding evidence", () => {
+  const registry = new RuleRegistry();
+  assert.throws(
+    () => registry.register({
+      id: "invalid",
+      category: "quality",
+      defaultSeverity: "warn",
+      contract: {
+        evidence: "",
+        legitimateException: "exception",
+        bypassAnalysis: "bypass",
+        testRequirements: { positive: "positive", negative: "negative", exception: "exception" },
+      },
+      check: () => [],
+    }),
+    /Invalid rule contract/,
+  );
+
+  registry.register({
+    id: "missing-evidence",
+    category: "quality",
+    defaultSeverity: "warn",
+    contract: {
+      evidence: "observable evidence",
+      legitimateException: "legitimate exception",
+      bypassAnalysis: "bypass analysis",
+      testRequirements: { positive: "positive", negative: "negative", exception: "exception" },
+    },
+    check: () => [{ rule: "missing-evidence", severity: "warn", message: "no evidence" }],
+  });
+  const findings = registry.runAll({ filePath: "src/a.ts", addedText: "", config: mergeConfig() });
+  assert.equal(findings[0]?.rule, "rule-contract");
+  assert.match(findings[0]?.message ?? "", /without observable evidence/);
 });
