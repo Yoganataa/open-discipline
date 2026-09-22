@@ -18,7 +18,7 @@ function cleanCandidate(value:string):string {
   return value
     .trim()
     .replace(/^[\x60"'([{<]+/,"")
-    .replace(/[\x60"'\\)]},;:,.!?]+$/,"")
+    .replace(/[\x60"'\\)\]};:,.!?]+$/,"")
     .replace(/[。！？]+$/u,"")
     .trim();
 }
