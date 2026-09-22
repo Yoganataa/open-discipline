@@ -11,7 +11,8 @@ const MUTATING_PROTECTED_RE = /(?:>|>>|\b(?:tee|set-content|out-file|add-content
 function mentionsProtected(command: string, protectedPaths: string[]): string | undefined {
   const normalized = normalizePath(command).toLowerCase().replace(/[\"']/g, " ");
   const tokens = normalized.split(/\s+/).filter(Boolean);
-  return protectedPaths.find((path) => {
+  const candidates = [".git", ...protectedPaths];
+  return candidates.find((path) => {
     const base = normalizePath(path).toLowerCase().replace(/\/\*\*$/, "").replace(/\/\*$/, "");
     if (!base) return false;
     return tokens.some((token) => token === base || token === base + "/" || token.startsWith(base + "/"));
