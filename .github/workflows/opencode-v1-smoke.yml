@@ -1,0 +1,111 @@
+name: OpenCode V1 compatibility smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - maturity-hardening
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opencode-v1-smoke-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: "1.18.14"
+            sha256: "f23980ba2aebfbfa53948e55e213d3f2a53740fd7326553828e89ad27e970572"
+          - version: "1.18.30"
+            sha256: "55007246858165496ff85ba1c2b648f7421e8e2013bf4189a680c9ff8e699d17"
+          - version: "1.18.31"
+            sha256: "e9312be75ed803b7415fc2aeabda1f4fe938912a39673762dc0c38c0e11ebde4"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install plugin dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Download pinned OpenCode binary
+        env:
+          VERSION: ${{ matrix.version }}
+          EXPECTED_SHA256: ${{ matrix.sha256 }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/anomalyco/opencode/releases/download/v${VERSION}/opencode-linux-x64.tar.gz"
+          curl --fail --location --retry 3 --silent --show-error "${url}" -o /tmp/opencode.tar.gz
+          actual="$(sha256sum /tmp/opencode.tar.gz | awk '{print $1}')"
+          test "${actual}" = "${EXPECTED_SHA256}"
+          mkdir -p /tmp/opencode
+          tar -xzf /tmp/opencode.tar.gz -C /tmp/opencode
+          chmod +x /tmp/opencode/opencode
+
+      - name: Verify binary version
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          actual="$(/tmp/opencode/opencode --version)"
+          test "${actual}" = "${VERSION}"
+
+      - name: Verify plugin loads in real host
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          log="/tmp/opencode-${VERSION}.log"
+          set +e
+          timeout 20s /tmp/opencode/opencode --print-logs --log-level INFO serve --port 0 >"${log}" 2>&1
+          status=$?
+          set -e
+
+          test "${status}" = "124" || {
+            echo "OpenCode exited before the bounded smoke timeout. status=${status}"
+            cat "${log}"
+            exit 1
+          }
+
+          grep -F "open-discipline.ts" "${log}" >/dev/null || {
+            echo "OpenDiscipline plugin load evidence was not observed for OpenCode ${VERSION}."
+            cat "${log}"
+            exit 1
+          }
+
+          if grep -E "failed to load plugin|error.*open-discipline|OpenDiscipline.*Error" "${log}" >/dev/null; then
+            echo "OpenDiscipline plugin reported a load error."
+            cat "${log}"
+            exit 1
+          fi
+
+          grep -E "server.*(started|listening|ready)|localhost|127\.0\.0\.1" "${log}" >/dev/null || {
+            echo "OpenCode did not produce bounded server-start evidence."
+            cat "${log}"
+            exit 1
+          }
+
+          echo "OpenCode ${VERSION}: binary startup + OpenDiscipline plugin-load smoke passed."
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-v${{ matrix.version }}-smoke-log
+          path: /tmp/opencode-${{ matrix.version }}.log
