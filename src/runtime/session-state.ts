@@ -8,6 +8,7 @@ export interface SessionState {
   repeatedValidation: number;
   completionWarned: boolean;
   taskIntent?:TaskIntent;
+  regressionTestEvidenceSeen: boolean;
 }
 
 export function createSessionState(): SessionState {
@@ -18,5 +19,6 @@ export function createSessionState(): SessionState {
     validationAttempted: 0,
     repeatedValidation: 0,
     completionWarned: false,
+    regressionTestEvidenceSeen: false,
   };
 }
