@@ -99,6 +99,40 @@ OpenDiscipline response:
 
 Limit: The paper concerns vulnerability repair, not OpenCode plugins. The relevant lesson is evidence flow: execution feedback should influence the repair loop rather than being ignored.
 
+
+## 6. Workflow structure and evidence packaging
+
+Product documentation from several agentic coding systems converges on a similar set of process controls, although the documentation is not independent evidence that one product workflow is superior.
+
+- Superpowers documents a software-development methodology built around brainstorming/design, implementation planning, task execution, review, and verification.
+  Source: https://github.com/obra/superpowers
+- Kiro Specs documents a requirements -> design -> tasks flow, with requirements and acceptance criteria treated as explicit artifacts.
+  Source: https://kiro.dev/docs/specs/
+- Antigravity documents task lists, implementation plans, and walkthrough artifacts as part of its agent workflow.
+  Source: https://antigravity.google/docs/walkthrough
+- Claude Code documents repository exploration, planning, implementation, and verification workflows.
+  Source: https://docs.anthropic.com/en/docs/claude-code
+- OpenAI Codex documentation emphasizes repository instructions, persistent execution, tool use, and verification rather than treating conversational narration as the primary evidence.
+  Source: https://developers.openai.com/codex/
+
+OpenDiscipline response:
+
+| Observed workflow pattern | OpenDiscipline control |
+|---|---|
+| Explicit user outcome before implementation | Workflow L1-L3 intent artifact |
+| Acceptance criteria | requirements.md |
+| Architecture/data-flow decisions before complex implementation | design.md |
+| Executable implementation sequence | plan.md |
+| Small independently verifiable units | tasks.md |
+| Execution evidence | verification.md |
+| Separate requirements and code-quality review | two-stage review guidance |
+| User-visible completion evidence | end-user verification + walkthrough.md |
+| Avoid unnecessary ceremony on trivial work | adaptive L0-L3 workflow |
+
+Limit: These are primarily product/documentation sources, not controlled comparative experiments. They justify adopting workflow patterns, not a claim that the complete workflow of any named product produces a superior outcome.
+
+The workflow layer therefore remains instruction/skill driven. It does not become a hard BLOCK rule merely because a workflow artifact is missing.
+
 ## Research-to-roadmap traceability
 
 | Research-derived failure mode | OpenDiscipline control | Status |
@@ -113,6 +147,7 @@ Limit: The paper concerns vulnerability repair, not OpenCode plugins. The releva
 | Unreviewed dependency introduction | Dependency-change guard | Implemented |
 | Explicit task scope vs actual scope | Scope/intent ledger | Implemented |
 | Root-cause linked to regression evidence | Session-local regression evidence ordering | Partial — explicit failure-to-fix linkage remains roadmap because the current V1 boundary does not expose portable command exit status |
+| Workflow drift / weak completion evidence | Native L0-L3 workflow + requirements/tasks/verification/walkthrough artifacts | Implemented as guidance; machine task-state enforcement remains roadmap |
 | Malicious repository/task instructions | Untrusted-content / prompt-injection boundary | Roadmap |
 | Child-agent consistency | Plugin-boundary child-session enforcement + V1 host-source verification | Partial — runtime child-session smoke remains roadmap |
 | Historical runtime differences | V1 compatibility matrix | Roadmap |
