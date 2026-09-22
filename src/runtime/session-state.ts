@@ -1,3 +1,4 @@
+import type { TaskIntent } from "./intent.ts";
 export interface SessionState {
   changed: boolean;
   codeChanged: boolean;
@@ -6,6 +7,7 @@ export interface SessionState {
   lastValidationKey?: string;
   repeatedValidation: number;
   completionWarned: boolean;
+  taskIntent?:TaskIntent;
 }
 
 export function createSessionState(): SessionState {
