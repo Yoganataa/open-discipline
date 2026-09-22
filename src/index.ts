@@ -9,6 +9,8 @@ import { changeSurfaceRule, testIntegrityRule, testEvidenceRule } from "./rules/
 import { extractChanges } from "./scanners/patch.ts";
 import { matchesPath, normalizePath } from "./scanners/paths.ts";
 import { suppressionRule } from "./rules/suppressions.ts";
+import { guardShellCommand, isValidationCommand, validationKey, validationPassed } from "./runtime/command.ts";
+import { createSessionState } from "./runtime/session-state.ts";
 
 const FILE_TOOLS = new Set(["write", "edit", "apply_patch"]);
 const CORE_INTEGRITY_PATHS = [
@@ -35,6 +37,16 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
   registry.register(testEvidenceRule);
   registry.register(suppressionRule);
   registry.register(changeSurfaceRule);
+
+  const sessionStates = new Map<string, ReturnType<typeof createSessionState>>();
+  const getState = (sessionID: string) => {
+    let state = sessionStates.get(sessionID);
+    if (!state) {
+      state = createSessionState();
+      sessionStates.set(sessionID, state);
+    }
+    return state;
+  };
 
   const commandPatterns = config.commandGuards.flatMap((source) => {
     try { return [{ source, regex: new RegExp(source) }]; }
@@ -93,12 +105,53 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
 
     "command.execute.before": async (input) => {
       if (!config.enabled) return;
+      const state = getState(input.sessionID);
+
+      const destructive = guardShellCommand(input.command, CORE_INTEGRITY_PATHS);
+      if (destructive) {
+        const message = "[open-disipline] " + destructive.severity.toUpperCase() + ": " + destructive.message;
+        if (destructive.severity === "block" && config.mode === "strict") throw new Error(message);
+        console.warn(message);
+      }
+
       for (const guard of commandPatterns) {
         guard.regex.lastIndex = 0;
         if (!guard.regex.test(input.command)) continue;
         const message = "[open-disipline] " + (config.mode === "strict" ? "BLOCK" : "WARN") + ": command matches configured guard: " + guard.source;
         if (config.mode === "strict") throw new Error(message);
         console.warn(message);
+      }
+
+      if (!isValidationCommand(input.command)) return;
+      state.validationAttempted++;
+      const key = validationKey(input.command);
+      if (state.lastValidationKey === key) state.repeatedValidation++;
+      else state.repeatedValidation = 0;
+      state.lastValidationKey = key;
+    },
+
+    "event": async ({ event }) => {
+      const type = (event as { type?: string }).type ?? "";
+      if (type !== "command.executed") return;
+      const payload = event as { properties?: Record<string, unknown> };
+      const command = typeof payload.properties?.command === "string" ? payload.properties.command : "";
+      if (!command || !isValidationCommand(command)) return;
+      const sessionID = typeof payload.properties?.sessionID === "string" ? payload.properties.sessionID : "";
+      if (!sessionID) return;
+      const state = getState(sessionID);
+      if (validationPassed(payload.properties)) {
+        state.validationPassed++;
+        state.failureRepeats = 0;
+        state.lastFailureKey = undefined;
+      } else {
+        state.validationFailed++;
+        const key = validationKey(command);
+        if (state.lastFailureKey === key) state.failureRepeats++;
+        else state.failureRepeats = 1;
+        state.lastFailureKey = key;
+        if (state.failureRepeats >= 3) {
+          console.warn("[open-disipline] Repeated validation failure detected. Stop changing unrelated code and inspect the original failure/root cause before retrying.");
+        }
       }
     },
 
