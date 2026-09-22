@@ -189,3 +189,22 @@ export function markDecisionStale(decision: MemoryDecision): MemoryDecision {
 export function isAuthoritativeSource(source: MemorySource): boolean {
   return source === "source" || source === "validation";
 }
+
+export function formatCheckpointContext(checkpoint: TaskCheckpoint, maxCharacters = 6000): string {
+  const lines = [
+    "[OpenDiscipline task checkpoint]",
+    checkpoint.objective ? "Objective: " + checkpoint.objective : "Objective: (not recorded)",
+    checkpoint.activeTask ? "Active task: " + checkpoint.activeTask : "Active task: (not recorded)",
+    checkpoint.completedTasks.length ? "Completed tasks: " + checkpoint.completedTasks.join(", ") : "Completed tasks: (none recorded)",
+    checkpoint.blockedTasks.length ? "Blocked tasks: " + checkpoint.blockedTasks.join(", ") : "Blocked tasks: (none recorded)",
+    checkpoint.affectedFiles.length ? "Affected files: " + checkpoint.affectedFiles.join(", ") : "Affected files: (none recorded)",
+    checkpoint.validation.length ? "Validation attempts: " + checkpoint.validation.map(v => v.command + " (" + v.attempts + ", " + v.result + ")").join("; ") : "Validation attempts: (none recorded)",
+    checkpoint.decisions.filter(d => d.status === "active").length
+      ? "Active decisions: " + checkpoint.decisions.filter(d => d.status === "active").map(d => d.statement).join("; ")
+      : "Active decisions: (none recorded)",
+    checkpoint.nextMove ? "Next move: " + checkpoint.nextMove : "Next move: (not recorded)",
+    "Memory is a checkpoint, not proof of current repository state. Verify current source and runtime evidence before relying on it.",
+  ];
+  const text = lines.join("\\n");
+  return text.length <= maxCharacters ? text : text.slice(0, Math.max(0, maxCharacters - 1)) + "…";
+}
