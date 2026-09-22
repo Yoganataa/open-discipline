@@ -123,7 +123,7 @@ The universal rule contract is now enforced by the rule registry. Every rule dec
 - [x] Validation-repetition warning: detect repeated identical validation attempts; V1 does not expose a portable command exit code through `command.executed`, so this deliberately does not claim to prove failure.
 - [x] Dependency API/version truth: verify JavaScript imports against local installed metadata/resolution and package-lock manifest truth without network access.
 - [x] Dependency-change guard: flag newly introduced manifest dependencies for explicit necessity/API review.
-- [ ] Scope/intent ledger: compare the requested task surface with the actual changed surface instead of relying only on file-count thresholds.
+- [x] Scope/intent ledger: compare explicitly declared task paths with the actual changed surface; when no explicit path evidence exists, retain change-surface evidence instead of inferring intent.
 - [ ] Root-cause/fix evidence: connect a reported failure to a regression test and the implementation change that addresses it.
 - [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
 - [x] Dependency-truth baseline: detect undeclared external imports for supported manifests.
