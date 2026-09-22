@@ -9,6 +9,7 @@ export interface SessionState {
   repeatedValidation: number;
   lastFailureKey?: string;
   failureRepeats: number;
+  completionWarned: boolean;
 }
 
 export function createSessionState(): SessionState {
@@ -21,5 +22,6 @@ export function createSessionState(): SessionState {
     validationFailed: 0,
     repeatedValidation: 0,
     failureRepeats: 0,
+    completionWarned: false,
   };
 }
