@@ -1,7 +1,7 @@
 import type { DisciplineRule, RuleContext, RuleFinding } from "../core/rules.ts";
 import { extractImports } from "../scanners/imports.ts";
 
-const RELATIVE = /^(?:\\.|\\.\\.)\\//;
+const RELATIVE = /^(?:\.|\.\.)\//;
 const BUILTINS = new Set([
   "assert","buffer","child_process","cluster","console","crypto","events","fs","http","https","module",
   "net","os","path","perf_hooks","process","stream","string_decoder","timers","tls","tty","url","util",
