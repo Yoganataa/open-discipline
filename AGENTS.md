@@ -1,6 +1,6 @@
-# OpenDisipline Engineering Policy
+# OpenDiscipline Engineering Policy
 
-OpenDisipline is a deterministic guardrail for agent-driven development. Keep the implementation small, predictable, and low-noise.
+OpenDiscipline is a deterministic guardrail for agent-driven development. Keep the implementation small, predictable, and low-noise.
 
 ## Core principles
 
