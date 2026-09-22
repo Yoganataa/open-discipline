@@ -391,21 +391,20 @@ Tests cover:
 ## Remaining memory work
 
 ### 1. Lifecycle integration
-[ ]
+[~]
 
-Connect checkpoint loading/saving to the actual OpenCode V1 plugin lifecycle.
+Implemented in the plugin lifecycle using the already-established V1 message/tool/event boundaries. Runtime compatibility still requires CI/host evidence before this item can become [x].
 
 Required behavior:
 
-    session start
-      -> load checkpoint
+    session/message boundary
+      -> load checkpoint once per session
       -> restore relevant state
       -> work
-      -> update observed state
-      -> checkpoint
-      -> session end / idle
+      -> checkpoint after meaningful file changes / validation
+      -> best-effort final checkpoint on session.idle
 
-Do not assume an unverified V1 compaction API exists.
+The implementation does not depend on an unverified compaction-specific V1 API. A future compaction hook can be added only after binary/source compatibility evidence is recorded.
 
 ### 2. Checkpoint triggers
 [ ]
