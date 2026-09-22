@@ -16,7 +16,7 @@ import { architectureRule } from "./rules/architecture.ts";
 import { dependencyTruthRule } from "./rules/dependencies.ts";
 import { detectDependencyAdditions, discoverDependencies, inspectJavascriptImports } from "./runtime/project.ts";
 import { captureInitialUserIntent } from "./runtime/intent.ts";
-import { checkpointFromSessionState, loadTaskCheckpoint, saveTaskCheckpoint } from "./runtime/memory.ts";
+import { checkpointFromSessionState, loadTaskCheckpoint, mergeCheckpointIntoSessionState, saveTaskCheckpoint } from "./runtime/memory.ts";
 
 const FILE_TOOLS=new Set(["write","edit","apply_patch"]);
 const SHELL_TOOLS=new Set(["bash","sh","zsh","fish","powershell","pwsh","cmd","shell"]);
@@ -34,7 +34,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
  const sessionStates=new Map<string,ReturnType<typeof createSessionState>>();
  const getState=(sessionID:string)=>{let state=sessionStates.get(sessionID);if(!state){state=createSessionState();sessionStates.set(sessionID,state);}return state;};
  const persistState=async(sessionID:string)=>{const state=getState(sessionID);if(!state.changed&&!state.validationAttempted&&!state.taskIntent)return;await saveTaskCheckpoint(directory,checkpointFromSessionState(sessionID,state));};
- const restoreState=async(sessionID:string)=>{const state=getState(sessionID);if(state.memoryLoaded)return state;const checkpoint=await loadTaskCheckpoint(directory,sessionID);if(checkpoint){const {mergeCheckpointIntoSessionState}=await import("./runtime/memory.ts");mergeCheckpointIntoSessionState(checkpoint,state);}state.memoryLoaded=true;return state;};
+ const restoreState=async(sessionID:string)=>{const state=getState(sessionID);if(state.memoryLoaded)return state;const checkpoint=await loadTaskCheckpoint(directory,sessionID);if(checkpoint)mergeCheckpointIntoSessionState(checkpoint,state);state.memoryLoaded=true;return state;};
  const commandPatterns=config.commandGuards.flatMap(source=>{try{return[{source,regex:new RegExp(source)}];}catch{console.warn("[open-discipline] Invalid command guard skipped: "+source);return[];}});
 
  return {
@@ -91,11 +91,11 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    if(blocking.length)throw new Error(blocking.map(f=>f.message).join("\n\n---\n\n"));await persistState(input.sessionID);
   },
   "command.execute.before":async(input)=>{
-   if(!config.enabled)return;const state=await restoreState(input.sessionID);
+   if(!config.enabled)return;
    const destructive=guardShellCommand(input.command,CORE_INTEGRITY_PATHS);
    if(destructive){const message="[open-discipline] "+destructive.severity.toUpperCase()+": "+destructive.message;if(destructive.severity==="block"&&config.mode==="strict")throw new Error(message);console.warn(message);}
    for(const guard of commandPatterns){guard.regex.lastIndex=0;if(!guard.regex.test(input.command))continue;const message="[open-discipline] "+(config.mode==="strict"?"BLOCK":"WARN")+": command matches configured guard: "+guard.source;if(config.mode==="strict")throw new Error(message);console.warn(message);}
-   if(!isValidationCommand(input.command))return;state.validationAttempted++;const key=validationKey(input.command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");await persistState(input.sessionID);
+   if(!isValidationCommand(input.command))return;const state=await restoreState(input.sessionID);state.validationAttempted++;const key=validationKey(input.command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");await persistState(input.sessionID);
   },
   "event":async({event})=>{
    const type=(event as {type?:string}).type??"";const payload=event as {properties?:Record<string,unknown>};const sessionID=typeof payload.properties?.sessionID==="string"?payload.properties.sessionID:"";if(!sessionID)return;
