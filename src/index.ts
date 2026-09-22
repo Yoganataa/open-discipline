@@ -132,6 +132,9 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
       if (state.lastValidationKey === key) state.repeatedValidation++;
       else state.repeatedValidation = 0;
       state.lastValidationKey = key;
+      if (state.repeatedValidation >= 2) {
+        console.warn("[open-disipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");
+      }
     },
 
     "event": async ({ event }) => {
