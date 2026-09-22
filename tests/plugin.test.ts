@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { OpenDisipline } from "../src/index.ts";
+import { OpenDiscipline } from "../src/index.ts";
 import { parseApplyPatch } from "../src/scanners/patch.ts";
 import { testIntegrityRule, testEvidenceRule } from "../src/rules/changes.ts";
 import { suppressionRule } from "../src/rules/suppressions.ts";
@@ -9,11 +9,11 @@ import { guardShellCommand, isValidationCommand } from "../src/runtime/command.t
 import { dependencyTruthRule } from "../src/rules/dependencies.ts";
 import { architectureRule } from "../src/rules/architecture.ts";
 import { RuleRegistry } from "../src/core/rules.ts";
-import { captureLatestUserIntent, extractDeclaredPaths } from "../src/runtime/intent.ts";
+import { captureInitialUserIntent, extractDeclaredPaths } from "../src/runtime/intent.ts";
 import { scopeIntentRule } from "../src/rules/changes.ts";
 
 async function plugin() {
-  return OpenDisipline({
+  return OpenDiscipline({
     directory: process.cwd(),
     worktree: process.cwd(),
     project: {} as never,
@@ -38,7 +38,7 @@ test("blocks violating write", async () => {
   await assert.rejects(
     () => h(
       { tool: "write", sessionID: "s", callID: "c" },
-      { args: { filePath: "src/OpenDisiplineUserRepository.ts", content: "export class OpenDisiplineUserRepository {}" } },
+      { args: { filePath: "src/OpenDisciplineUserRepository.ts", content: "export class OpenDisciplineUserRepository {}" } },
     ),
     /Open Disipline/,
   );
@@ -125,7 +125,7 @@ test("suppression guard covers major language families", () => {
 
 
 test("destructive command guard protects repository and guardrail paths", () => {
-  const protectedPaths = ["src/rules/**", "discipline.config.json", ".opencode/plugins/open-disipline.ts"];
+  const protectedPaths = ["src/rules/**", "discipline.config.json", ".opencode/plugins/open-discipline.ts"];
   assert.equal(guardShellCommand("git reset --hard", protectedPaths)?.severity, "block");
   assert.equal(guardShellCommand("rm -rf src/rules", protectedPaths)?.severity, "block");
   assert.equal(guardShellCommand("rm -rf ./tmp", protectedPaths)?.severity, "warn");
@@ -310,8 +310,8 @@ test("intent extraction only records explicit path evidence", () => {
   );
 });
 
-test("scope intent captures latest real user message and session identity", () => {
-  const intent = captureLatestUserIntent({
+test("scope intent captures initial real user message and session identity", () => {
+  const intent = captureInitialUserIntent({
     messages: [
       {
         info: { role: "assistant", sessionID: "s", id: "a1" },
@@ -328,8 +328,8 @@ test("scope intent captures latest real user message and session identity", () =
     ],
   });
   assert.equal(intent?.sessionID, "s");
-  assert.equal(intent?.messageID, "u2");
-  assert.deepEqual(intent?.declaredPaths, ["tests/plugin.test.ts"]);
+  assert.equal(intent?.messageID, "u1");
+  assert.deepEqual(intent?.declaredPaths, ["src/runtime/project.ts"]);
 });
 
 test("scope intent warns only for an explicit out-of-scope path", () => {
@@ -364,4 +364,14 @@ test("scope intent degrades silently when no explicit path intent exists", () =>
     addedText: "",
     config,
   }), []);
+});
+
+
+test("scope intent is retained from the initial user message", () => {
+  const intent = captureInitialUserIntent({ messages: [
+    { info: { role: "user", sessionID: "s", id: "u1" }, parts: [{ type: "text", text: "Update `src/runtime/project.ts`" }] },
+    { info: { role: "user", sessionID: "s", id: "u2" }, parts: [{ type: "text", text: "Also update `tests/plugin.test.ts`" }] },
+  ] });
+  assert.equal(intent?.messageID, "u1");
+  assert.deepEqual(intent?.declaredPaths, ["src/runtime/project.ts"]);
 });
