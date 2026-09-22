@@ -79,7 +79,11 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
       if (integrityChange) {
         throw new Error("[open-disipline] BLOCK: guardrail implementation/configuration is protected from agent modification: " + integrityChange.filePath);
       }
-      const files = [...new Set(guarded.map((change) => normalizePath(change.filePath)))];
+      const state = getState(input.sessionID);
+      state.changed = true;
+      state.codeChanged ||= guarded.some((change) => config.codeFileExtensions.includes(change.filePath.slice(change.filePath.lastIndexOf("."))));
+      state.testChanged ||= guarded.some((change) => config.testIntegrity.paths.some((pattern) => matchesPath(change.filePath, [pattern])));
+            const files = [...new Set(guarded.map((change) => normalizePath(change.filePath)))];
       const testFiles = files.filter((file) => config.testIntegrity.paths.some((pattern) => matchesPath(file, [pattern])));
       const codeFiles = files.filter((file) => config.codeFileExtensions.includes(file.slice(file.lastIndexOf("."))));
       const findings = [];
@@ -132,14 +136,21 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
 
     "event": async ({ event }) => {
       const type = (event as { type?: string }).type ?? "";
-      if (type !== "command.executed") return;
       const payload = event as { properties?: Record<string, unknown> };
-      const command = typeof payload.properties?.arguments === "string" ? payload.properties.arguments : "";
       const sessionID = typeof payload.properties?.sessionID === "string" ? payload.properties.sessionID : "";
-      if (!command || !sessionID || !isValidationCommand(command)) return;
-      // V1 command.executed identifies the command, but does not expose a portable exit code.
-      // Record the validation attempt only; never infer pass/fail from missing data.
-      getState(sessionID).validationAttempted++;
+      if (!sessionID) return;
+      const state = getState(sessionID);
+
+      if (type === "command.executed") {
+        const command = typeof payload.properties?.arguments === "string" ? payload.properties.arguments : "";
+        if (command && isValidationCommand(command)) state.validationAttempted++;
+        return;
+      }
+
+      if (type === "session.idle" && state.codeChanged && !state.validationAttempted && !state.completionWarned) {
+        state.completionWarned = true;
+        console.warn("[open-disipline] completion-evidence: code changed without a detected validation command. Run the relevant test/typecheck/lint/build validation before considering the task complete.");
+      }
     },
 
     "permission.ask": async (input, output) => {
