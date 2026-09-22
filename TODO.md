@@ -189,3 +189,5 @@ The core rules stay language-agnostic. Adapters only translate ecosystem-specifi
 - [ ] No rule that blocks legitimate exceptions merely because a suppression exists.
 - [ ] No V2 lifecycle API in the V1 plugin.
 - [ ] No massive regex catalogue without evidence and tests.
+
+- [x] CI repair: validate parser syntax and suppression-test ownership after GitHub Actions failures.
