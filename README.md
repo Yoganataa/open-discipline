@@ -190,7 +190,7 @@ The project is V1-only. Do not add V2 lifecycle APIs.
 
 The latest-stable smoke workflow is intended to verify the actual released V1 binary rather than treating SDK types or host-source inspection as runtime proof. Historical releases remain useful as regression references, not as the primary daily compatibility target.
 
-See `COMPATIBILITY.md` for the evidence-level matrix. The selected V1 releases have source-level evidence for the core hook and child TaskTool enforcement. Actual binary smoke is intentionally still marked pending; SDK types and host source are not treated as runtime proof.
+See `ROADMAP.md` for implementation status and `COMPATIBILITY.md` for the evidence-level compatibility matrix. The selected V1 releases have source-level evidence for the core hook and child TaskTool enforcement. Actual binary smoke is intentionally still marked pending; SDK types and host source are not treated as runtime proof.
 
 ## Configuration
 
