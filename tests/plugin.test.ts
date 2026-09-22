@@ -5,7 +5,6 @@ import { parseApplyPatch } from "../src/scanners/patch.ts";
 import { testIntegrityRule } from "../src/rules/changes.ts";
 import { suppressionRule } from "../src/rules/suppressions.ts";
 import { mergeConfig } from "../src/config.ts";
-import { mergeConfig } from "../src/config.ts";
 
 async function plugin() {
   return OpenDisipline({
