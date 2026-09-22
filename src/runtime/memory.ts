@@ -190,7 +190,12 @@ export function isAuthoritativeSource(source: MemorySource): boolean {
   return source === "source" || source === "validation";
 }
 
+const MEMORY_TRUST_WARNING =
+  "Memory is a checkpoint, not proof of current repository state. Verify current source and runtime evidence before relying on it.";
+
 export function formatCheckpointContext(checkpoint: TaskCheckpoint, maxCharacters = 6000): string {
+  if (maxCharacters <= 0) return "";
+
   const lines = [
     "[OpenDiscipline task checkpoint]",
     checkpoint.objective ? "Objective: " + checkpoint.objective : "Objective: (not recorded)",
@@ -203,8 +208,25 @@ export function formatCheckpointContext(checkpoint: TaskCheckpoint, maxCharacter
       ? "Active decisions: " + checkpoint.decisions.filter(d => d.status === "active").map(d => d.statement).join("; ")
       : "Active decisions: (none recorded)",
     checkpoint.nextMove ? "Next move: " + checkpoint.nextMove : "Next move: (not recorded)",
-    "Memory is a checkpoint, not proof of current repository state. Verify current source and runtime evidence before relying on it.",
   ];
-  const text = lines.join("\\n");
-  return text.length <= maxCharacters ? text : text.slice(0, Math.max(0, maxCharacters - 1)) + "…";
+
+  const body = lines.join("\n");
+  if (body.length <= maxCharacters) {
+    const full = body + "\n" + MEMORY_TRUST_WARNING;
+    if (full.length <= maxCharacters) return full;
+  }
+
+  if (maxCharacters <= MEMORY_TRUST_WARNING.length) {
+    return MEMORY_TRUST_WARNING.slice(0, maxCharacters);
+  }
+
+  const bodyBudget = maxCharacters - MEMORY_TRUST_WARNING.length - 2;
+  if (body.length <= bodyBudget) {
+    return body + "\n" + MEMORY_TRUST_WARNING;
+  }
+
+  const truncatedBody = bodyBudget > 0
+    ? body.slice(0, Math.max(0, bodyBudget - 1)) + "…"
+    : "";
+  return truncatedBody + "\n" + MEMORY_TRUST_WARNING;
 }
