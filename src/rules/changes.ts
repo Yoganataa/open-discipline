@@ -75,6 +75,33 @@ export const testEvidenceRule: DisciplineRule = {
   },
 };
 
+export const rootCauseFixEvidenceRule: DisciplineRule = {
+  id: "root-cause-fix-evidence",
+  category: "integrity",
+  defaultSeverity: "warn",
+  contract: {
+    evidence: "A code change is observed without a previously observed regression-test oracle in the same guarded session.",
+    legitimateException: "A behavior-preserving change, test-first work already performed outside the current session, or an implementation-only change may legitimately lack a preceding test write; this rule therefore warns rather than blocks.",
+    bypassAnalysis: "This evidence is limited to observable writes in the current session. OpenCode V1 does not expose a portable command exit status here, so the rule cannot claim that a specific failure caused the fix.",
+    testRequirements: {
+      positive: "Warn when a code change occurs before any recognizable regression-test evidence in the session.",
+      negative: "Do not warn when a recognizable test oracle was observed before the code change.",
+      exception: "Warn rather than block when no failure signal is available from the host.",
+    },
+  },
+  check(ctx: RuleContext): RuleFinding[] {
+    const isCodeFile = ctx.config.codeFileExtensions.includes(ctx.filePath.slice(ctx.filePath.lastIndexOf(".")));
+    if (!isCodeFile || ctx.changeIndex !== undefined && ctx.changeIndex < 0) return [];
+    if (ctx.priorRegressionTestEvidence) return [];
+    return [{
+      rule: "root-cause-fix-evidence",
+      severity: "warn",
+      message: "Code changed without prior regression-test evidence in this session. Add or update a behavior-specific regression oracle before treating the implementation change as a demonstrated fix.",
+      evidence: "code-change-without-prior-regression-test",
+    }];
+  },
+};
+
 export const scopeIntentRule: DisciplineRule = {
   id: "scope-intent",
   category: "scope",
