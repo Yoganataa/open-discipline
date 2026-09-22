@@ -5,6 +5,7 @@ import { parseApplyPatch } from "../src/scanners/patch.ts";
 import { testIntegrityRule } from "../src/rules/changes.ts";
 import { suppressionRule } from "../src/rules/suppressions.ts";
 import { mergeConfig } from "../src/config.ts";
+import { guardShellCommand, isValidationCommand } from "../src/runtime/command.ts";
 
 async function plugin() {
   return OpenDisipline({
@@ -114,5 +115,30 @@ test("suppression guard covers major language families", () => {
   for (const [filePath, addedText] of cases) {
     const findings = suppressionRule.check({ filePath, addedText, config });
     assert.ok(findings.length > 0, `expected suppression detection for ${filePath}`);
+  }
+});
+
+
+test("destructive command guard protects repository and guardrail paths", () => {
+  const protectedPaths = ["src/rules/**", "discipline.config.json", ".opencode/plugins/open-disipline.ts"];
+  assert.equal(guardShellCommand("git reset --hard", protectedPaths)?.severity, "block");
+  assert.equal(guardShellCommand("rm -rf src/rules", protectedPaths)?.severity, "block");
+  assert.equal(guardShellCommand("rm -rf ./tmp", protectedPaths)?.severity, "warn");
+  assert.equal(guardShellCommand("git push origin main --force", protectedPaths)?.severity, "block");
+  assert.equal(guardShellCommand("echo ok", protectedPaths), undefined);
+});
+
+test("validation classifier covers common project stacks", () => {
+  for (const command of [
+    "npm test",
+    "pytest",
+    "go test ./...",
+    "cargo test",
+    "dotnet test",
+    "./gradlew test",
+    "flutter test",
+    "swift test",
+  ]) {
+    assert.equal(isValidationCommand(command), true, command);
   }
 });
