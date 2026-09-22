@@ -30,10 +30,10 @@ The implementation order is deliberately phased. Do not mark an item complete be
 - [x] Universal rule metadata contract baseline: category/default severity/evidence field
 - [x] Rule finding deduplication across multi-file operations
 - [x] Universal rule contract: enforce evidence, legitimate exception, bypass analysis, and test requirements
-- [ ] Scope/intent ledger
-  - [ ] Record the initial task intent when a reliable V1 message hook is available.
-  - [ ] Compare changed paths with the declared/observed task surface.
-  - [ ] Degrade to change-surface evidence when task intent is unavailable.
+- [x] Scope/intent ledger
+  - [x] Record explicit task intent from the reliable V1 message transform hook.
+  - [x] Compare changed paths with explicitly declared task paths.
+  - [x] Degrade to change-surface evidence when explicit path intent is unavailable.
 - [ ] Root-cause/fix evidence
   - [ ] Connect a failure signal to a regression test.
   - [ ] Verify the regression test was present before the implementation fix or was introduced as part of the fix.
