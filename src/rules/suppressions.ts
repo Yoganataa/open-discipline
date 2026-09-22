@@ -66,6 +66,14 @@ function scanPath(path: string): boolean {
 
 export const suppressionRule: DisciplineRule = {
   id: "suppression",
+  category: "integrity",
+  defaultSeverity: "warn",
+  contract: {
+    evidence: "Added source/configuration text matches a language-specific checker, linter, analyzer, or compiler suppression pattern.",
+    legitimateException: "A narrow, documented suppression can be legitimate when the underlying diagnostic is intentional and cannot be resolved without losing required behavior.",
+    bypassAnalysis: "Unrecognized suppression syntax can evade this adapter; broad semantic suppression remains outside regex-only guarantees and should be covered by ecosystem-specific adapters.",
+    testRequirements: { positive: "Detect representative broad and targeted suppressions across supported language families.", negative: "Do not report ordinary code without suppression directives.", exception: "Document the legitimate exception path without treating every suppression as automatically unsafe." },
+  },
   check(ctx: RuleContext): RuleFinding[] {
     if (!ctx.config.enabled || !scanPath(ctx.filePath)) return [];
     const ext = getExtension(ctx.filePath);
@@ -80,6 +88,7 @@ export const suppressionRule: DisciplineRule = {
         rule: `suppression:${pattern.id}`,
         severity,
         message: `${pattern.label}. Treat suppressions as exceptions: prefer fixing the underlying diagnostic; when suppression is genuinely required, keep it narrow, explicit, and documented.`,
+        evidence: `suppression:${pattern.id}`,
       });
     }
 
