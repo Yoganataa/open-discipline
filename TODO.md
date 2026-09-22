@@ -4,6 +4,21 @@ OpenDisipline is intended to enforce universal engineering practices for agentic
 
 The implementation order is deliberately phased. Do not mark an item complete because code exists; it is complete only when the behavior is implemented, tested, documented, and validated on the supported OpenCode V1 hook surface.
 
+
+## Research traceability gate
+
+Every new guardrail must be traceable to an evidence-backed agentic failure mode or to an explicitly documented engineering-safety requirement.
+
+For each research-derived control:
+- [x] Failure mode is documented.
+- [x] Observable evidence is defined.
+- [x] Severity is tied to evidence strength.
+- [x] Legitimate exceptions are documented.
+- [x] Bypass limitations are documented.
+- [x] Positive, negative, and exception tests are required.
+- [x] CI is required before the control is considered implemented.
+- [x] Research source and control mapping are recorded in RESEARCH.md.
+
 ## Phase 0 — Core guardrail foundation
 
 - [x] Deterministic write-boundary enforcement
