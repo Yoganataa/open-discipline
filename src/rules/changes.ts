@@ -1,5 +1,5 @@
 import type { DisciplineRule, RuleContext, RuleFinding } from "../core/rules.ts";
-import { getExtension, matchesPath } from "../scanners/paths.ts";
+import { getExtension, matchesPath, normalizePath } from "../scanners/paths.ts";
 
 export const changeSurfaceRule: DisciplineRule = {
   id: "change-surface",
@@ -72,5 +72,28 @@ export const testEvidenceRule: DisciplineRule = {
       }
     }
     return [];
+  },
+};
+
+export const scopeIntentRule: DisciplineRule = {
+  id: "scope-intent",
+  category: "scope",
+  defaultSeverity: "warn",
+  contract: {
+    evidence: "The current session has an explicit user-declared file/path surface, and the guarded change targets a path outside that declared surface.",
+    legitimateException: "A change is legitimate when its path is explicitly named by the current user task, or when no reliable path intent was captured; the latter deliberately degrades to change-surface evidence.",
+    bypassAnalysis: "This adapter extracts explicit path references only. It does not infer semantic intent from prose, and it cannot prove that an unmentioned file is unnecessary.",
+    testRequirements: {
+      positive: "Warn when an explicit task path exists and a changed file is outside that declared surface.",
+      negative: "Do not warn when the changed file matches a declared path.",
+      exception: "Do not warn when no explicit path intent is available.",
+    },
+  },
+  check(ctx: RuleContext): RuleFinding[] {
+    const intent = ctx.taskIntent;
+    if (!intent?.declaredPaths.length) return [];
+    const path = normalizePath(ctx.filePath);
+    if (intent.declaredPaths.some(pattern => matchesPath(path, [pattern]))) return [];
+    return [{ rule: "scope-intent", severity: "warn", message: 'Changed path "' + path + '" is outside the explicitly declared task surface. Verify that this additional file is required; this rule does not infer semantic intent.', evidence: "changed:" + path + ";declared:" + intent.declaredPaths.join(",") }];
   },
 };
