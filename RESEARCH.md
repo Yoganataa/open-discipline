@@ -114,7 +114,7 @@ Limit: The paper concerns vulnerability repair, not OpenCode plugins. The releva
 | Explicit task scope vs actual scope | Scope/intent ledger | Implemented |
 | Root-cause linked to regression evidence | Session-local regression evidence ordering | Partial — explicit failure-to-fix linkage remains roadmap because the current V1 boundary does not expose portable command exit status |
 | Malicious repository/task instructions | Untrusted-content / prompt-injection boundary | Roadmap |
-| Child-agent consistency | Subagent enforcement verification | Roadmap |
+| Child-agent consistency | Plugin-boundary child-session enforcement + V1 host-source verification | Partial — runtime child-session smoke remains roadmap |
 | Historical runtime differences | V1 compatibility matrix | Roadmap |
 
 ## How research changes implementation discipline
@@ -151,3 +151,12 @@ The research does not establish that OpenDiscipline:
 - guarantees that a blocked operation could not be reproduced through an unmodeled OpenCode or host bypass.
 
 Those limitations are part of the design contract rather than defects to hide.
+
+
+## OpenCode V1 host evidence
+
+The OpenCode V1 host-source review adds an important distinction to the research-derived roadmap: a guardrail can be correctly implemented at the plugin boundary while still requiring host-level verification.
+
+For V1 1.18.14, 1.18.30, and 1.18.31, the upstream host source was checked for the `tool.execute.before` boundary and for the TaskTool/subtask path invoking that boundary. OpenDiscipline records these as host-source evidence, not runtime-smoke proof.
+
+The project therefore does not convert the source inspection into a claim that every platform and binary build behaves identically. Actual binary smoke tests remain a separate roadmap item.
