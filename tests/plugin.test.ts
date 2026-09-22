@@ -8,6 +8,7 @@ import { mergeConfig } from "../src/config.ts";
 import { guardShellCommand, isValidationCommand } from "../src/runtime/command.ts";
 import { dependencyTruthRule } from "../src/rules/dependencies.ts";
 import { architectureRule } from "../src/rules/architecture.ts";
+import { RuleRegistry } from "../src/core/rules.ts";
 
 async function plugin() {
   return OpenDisipline({
@@ -210,4 +211,21 @@ test("regression evidence warns when changed test has no recognizable oracle", (
     changeIndex: 1,
   });
   assert.ok(findings.some((x) => x.message.includes("assertion/oracle")));
+});
+
+
+test("rule registry deduplicates identical findings", () => {
+  const registry = new RuleRegistry();
+  registry.register({
+    id: "duplicate-a",
+    category: "quality",
+    defaultSeverity: "warn",
+    check: () => [
+      { rule: "same", severity: "warn", message: "same evidence", evidence: "x" },
+      { rule: "same", severity: "warn", message: "same evidence", evidence: "x" },
+    ],
+  });
+  const findings = registry.runAll({ filePath: "src/a.ts", addedText: "", config: mergeConfig() });
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0]?.evidence, "x");
 });
