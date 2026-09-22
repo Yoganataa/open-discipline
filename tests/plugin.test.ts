@@ -40,7 +40,7 @@ test("blocks violating write", async () => {
       { tool: "write", sessionID: "s", callID: "c" },
       { args: { filePath: "src/OpenDisciplineUserRepository.ts", content: "export class OpenDisciplineUserRepository {}" } },
     ),
-    /Open Disipline/,
+    /Open Discipline/,
   );
 });
 
