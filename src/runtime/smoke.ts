@@ -29,7 +29,11 @@ class FileSmokeRecorder implements SmokeRecorder {
   readonly enabled = true;
   private queue = Promise.resolve();
 
-  constructor(private readonly path: string) {}
+  private readonly path: string;
+
+  constructor(path: string) {
+    this.path = path;
+  }
 
   async record(event: Omit<SmokeEvent, "schemaVersion" | "at">): Promise<void> {
     const entry: SmokeEvent = {
