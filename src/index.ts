@@ -16,6 +16,7 @@ import { architectureRule } from "./rules/architecture.ts";
 import { dependencyTruthRule } from "./rules/dependencies.ts";
 import { detectDependencyAdditions, discoverDependencies, inspectJavascriptImports } from "./runtime/project.ts";
 import { captureInitialUserIntent } from "./runtime/intent.ts";
+import { checkpointFromSessionState, loadTaskCheckpoint, saveTaskCheckpoint } from "./runtime/memory.ts";
 
 const FILE_TOOLS=new Set(["write","edit","apply_patch"]);
 const SHELL_TOOLS=new Set(["bash","sh","zsh","fish","powershell","pwsh","cmd","shell"]);
@@ -32,12 +33,14 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
  if(config.dependencyTruth.enabled)registry.register(dependencyTruthRule);
  const sessionStates=new Map<string,ReturnType<typeof createSessionState>>();
  const getState=(sessionID:string)=>{let state=sessionStates.get(sessionID);if(!state){state=createSessionState();sessionStates.set(sessionID,state);}return state;};
+ const persistState=async(sessionID:string)=>{const state=getState(sessionID);if(!state.changed&&!state.validationAttempted&&!state.taskIntent)return;await saveTaskCheckpoint(directory,checkpointFromSessionState(sessionID,state));};
+ const restoreState=async(sessionID:string)=>{const state=getState(sessionID);if(state.memoryLoaded)return state;const checkpoint=await loadTaskCheckpoint(directory,sessionID);if(checkpoint){const {mergeCheckpointIntoSessionState}=await import("./runtime/memory.ts");mergeCheckpointIntoSessionState(checkpoint,state);}state.memoryLoaded=true;return state;};
  const commandPatterns=config.commandGuards.flatMap(source=>{try{return[{source,regex:new RegExp(source)}];}catch{console.warn("[open-discipline] Invalid command guard skipped: "+source);return[];}});
 
  return {
   "experimental.chat.messages.transform":async(_input,output)=>{
    const firstIntent=captureInitialUserIntent(output);
-   if(firstIntent){const state=getState(firstIntent.sessionID);if(!state.taskIntent)state.taskIntent=firstIntent;}
+   if(firstIntent){const state=await restoreState(firstIntent.sessionID);if(!state.taskIntent)state.taskIntent=firstIntent;await persistState(firstIntent.sessionID);}
    if(!config.enabled||!config.context.enabled||!output.messages.length)return;
    const firstUser=output.messages.find(message=>message.info.role==="user");if(!firstUser||!firstUser.parts.length)return;
    if(firstUser.parts.some(part=>part.type==="text"&&part.text.includes("[Open Discipline engineering policy]")))return;
@@ -52,7 +55,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
     const destructive=guardShellCommand(command,CORE_INTEGRITY_PATHS);
     if(destructive){const message="[open-discipline] "+destructive.severity.toUpperCase()+": "+destructive.message;if(destructive.severity==="block"&&config.mode==="strict")throw new Error(message);console.warn(message);}
     for(const guard of commandPatterns){guard.regex.lastIndex=0;if(!guard.regex.test(command))continue;const message="[open-discipline] "+(config.mode==="strict"?"BLOCK":"WARN")+": command matches configured guard: "+guard.source;if(config.mode==="strict")throw new Error(message);console.warn(message);}
-    if(isValidationCommand(command)){const state=getState(input.sessionID);state.validationAttempted++;const key=validationKey(command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");}
+    if(isValidationCommand(command)){const state=await restoreState(input.sessionID);state.validationAttempted++;const key=validationKey(command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");await persistState(input.sessionID);}
     return;
    }
    if(input.tool==="read"&&config.readProtection.enabled){
@@ -65,10 +68,10 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    const guarded=changes.filter(change=>!matchesPath(change.filePath,config.allow.paths));
    const integrityChange=guarded.find(change=>isCoreIntegrityPath(change.filePath));
    if(integrityChange)throw new Error("[open-discipline] BLOCK: guardrail implementation/configuration is protected from agent modification: "+integrityChange.filePath);
-   const state=getState(input.sessionID);state.changed=true;
+   const state=await restoreState(input.sessionID);state.changed=true;
    state.codeChanged ||= guarded.some(change=>config.codeFileExtensions.includes(change.filePath.slice(change.filePath.lastIndexOf("."))));
    state.testChanged ||= guarded.some(change=>config.testIntegrity.paths.some(pattern=>matchesPath(change.filePath,[pattern])));
-   const files=[...new Set(guarded.map(change=>normalizePath(change.filePath)))];
+   const files=[...new Set(guarded.map(change=>normalizePath(change.filePath)))];for(const file of files)state.affectedFiles.add(file);
    const testFiles=files.filter(file=>config.testIntegrity.paths.some(pattern=>matchesPath(file,[pattern])));
    const codeFiles=files.filter(file=>config.codeFileExtensions.includes(file.slice(file.lastIndexOf("."))));
    const findings=[];
@@ -85,20 +88,20 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    }
    const blocking=findings.filter(f=>f.severity==="block");const warnings=findings.filter(f=>f.severity==="warn");
    for(const warning of warnings)console.warn("[open-discipline] "+warning.rule+"\n"+warning.message);
-   if(blocking.length)throw new Error(blocking.map(f=>f.message).join("\n\n---\n\n"));
+   if(blocking.length)throw new Error(blocking.map(f=>f.message).join("\n\n---\n\n"));await persistState(input.sessionID);
   },
   "command.execute.before":async(input)=>{
-   if(!config.enabled)return;const state=getState(input.sessionID);
+   if(!config.enabled)return;const state=await restoreState(input.sessionID);
    const destructive=guardShellCommand(input.command,CORE_INTEGRITY_PATHS);
    if(destructive){const message="[open-discipline] "+destructive.severity.toUpperCase()+": "+destructive.message;if(destructive.severity==="block"&&config.mode==="strict")throw new Error(message);console.warn(message);}
    for(const guard of commandPatterns){guard.regex.lastIndex=0;if(!guard.regex.test(input.command))continue;const message="[open-discipline] "+(config.mode==="strict"?"BLOCK":"WARN")+": command matches configured guard: "+guard.source;if(config.mode==="strict")throw new Error(message);console.warn(message);}
-   if(!isValidationCommand(input.command))return;state.validationAttempted++;const key=validationKey(input.command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");
+   if(!isValidationCommand(input.command))return;state.validationAttempted++;const key=validationKey(input.command);if(state.lastValidationKey===key)state.repeatedValidation++;else state.repeatedValidation=0;state.lastValidationKey=key;if(state.repeatedValidation>=2)console.warn("[open-discipline] validation-repetition: the same validation command has been attempted repeatedly. Stop looping and inspect the original failure/root cause before retrying.");await persistState(input.sessionID);
   },
   "event":async({event})=>{
    const type=(event as {type?:string}).type??"";const payload=event as {properties?:Record<string,unknown>};const sessionID=typeof payload.properties?.sessionID==="string"?payload.properties.sessionID:"";if(!sessionID)return;
    const state=getState(sessionID);
    if(type==="session.idle"&&state.codeChanged&&!state.validationAttempted&&!state.completionWarned){state.completionWarned=true;console.warn("[open-discipline] completion-evidence: code changed without a detected validation command. Run the relevant test/typecheck/lint/build validation before considering the task complete.");}
-   if(type==="session.idle")sessionStates.delete(sessionID);
+   if(type==="session.idle"){await persistState(sessionID);sessionStates.delete(sessionID);}
   },
   "permission.ask":async(input,output)=>{
    if(!config.enabled||!config.readProtection.enabled||input.type!=="read")return;const path=typeof input.pattern==="string"?input.pattern:"";
