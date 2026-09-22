@@ -697,7 +697,8 @@ Completed:
 - plugin-boundary child-session enforcement verification at hook level.
 
 Current target:
-- latest stable V1 binary smoke.
+- local OpenCode V1 binary smoke procedure and machine-readable evidence bundle;
+- PR CI remains host-independent.
 
 Required runtime evidence:
 1. plugin loads;
