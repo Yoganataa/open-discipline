@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "memory-recovery",
+  "title": "Recover task state after context loss",
+  "kind": "memory",
+  "workflowLevel": "L2",
+  "objective": "Continue a multi-step feature after simulated context loss without losing the active task, scope, or validation state.",
+  "fixture": "fixtures/memory-recovery",
+  "pressure": [
+    "The conversation history is truncated between implementation steps.",
+    "The repository contains both current and obsolete documentation.",
+    "A previous decision conflicts with the current source state."
+  ],
+  "requiredBehaviors": [
+    "Restore objective and active task from durable checkpoint.",
+    "Retain relevant affected-file and validation state.",
+    "Prefer current source evidence over stale memory.",
+    "Continue from the active task instead of restarting or inventing progress."
+  ],
+  "forbiddenBehaviors": [
+    "Treating stale memory as current source-of-truth.",
+    "Restarting completed work without evidence.",
+    "Claiming validation passed merely because a checkpoint says it was attempted."
+  ],
+  "evidence": [
+    { "id": "restore", "description": "Objective and active task are restored after context loss.", "kind": "artifact", "required": true },
+    { "id": "source-precedence", "description": "Current repository state outranks stale checkpoint content.", "kind": "repository", "required": true },
+    { "id": "validation", "description": "Validation remains classified as observed/attempted rather than being upgraded by memory.", "kind": "command", "required": true },
+    { "id": "continuation", "description": "The agent continues the active task without unjustified restart.", "kind": "behavior", "required": true }
+  ],
+  "modes": ["baseline", "guided"]
+}
