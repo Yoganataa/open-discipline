@@ -28,14 +28,10 @@ child.on("error", error => {
   process.exitCode = 1;
 });
 child.on("exit", (code, signal) => {
-  if (signal) {
-    console.error("OpenCode exited by signal " + signal);
-    process.exitCode = 1;
-  } else {
-    process.exitCode = code ?? 1;
-  }
-  if (process.exitCode === 0) {
-    const report = spawn(process.execPath, ["scripts/smoke-report.mjs", "--output", output, "--events", resolve(output, "events.ndjson"), "--mode", mode], { stdio: "inherit" });
-    report.on("exit", reportCode => { process.exitCode = reportCode ?? 1; });
-  }
+  const openCodeExit = signal ? 1 : (code ?? 1);
+  if (signal) console.error("OpenCode exited by signal " + signal);
+  const report = spawn(process.execPath, ["scripts/smoke-report.mjs", "--output", output, "--events", resolve(output, "events.ndjson"), "--mode", mode], { stdio: "inherit" });
+  report.on("exit", reportCode => {
+    process.exitCode = openCodeExit !== 0 ? openCodeExit : (reportCode ?? 1);
+  });
 });
