@@ -56,3 +56,15 @@ test("checkpoint merge preserves observed validation evidence", () => {
   assert.equal(merged.validationAttempted, 3);
   assert.equal(merged.lastValidationKey, "npm test");
 });
+
+
+test("checkpoint context rendering is bounded and labels memory as non-authoritative", async () => {
+  const { formatCheckpointContext } = await import("../src/runtime/memory.ts");
+  const checkpoint = checkpointFromSessionState("session-4", createSessionState());
+  checkpoint.objective = "Implement durable task recovery";
+  checkpoint.nextMove = "Run focused recovery tests";
+  const rendered = formatCheckpointContext(checkpoint, 300);
+  assert.ok(rendered.length <= 300);
+  assert.match(rendered, /OpenDiscipline task checkpoint/);
+  assert.match(rendered, /not proof of current repository state/);
+});
