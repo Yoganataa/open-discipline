@@ -17,6 +17,7 @@ import { dependencyTruthRule } from "./rules/dependencies.ts";
 import { detectDependencyAdditions, discoverDependencies, inspectJavascriptImports } from "./runtime/project.ts";
 import { captureInitialUserIntent } from "./runtime/intent.ts";
 import { checkpointFromSessionState, loadTaskCheckpoint, mergeCheckpointIntoSessionState, saveTaskCheckpoint } from "./runtime/memory.ts";
+import { createSmokeRecorder } from "./runtime/smoke.ts";
 
 const FILE_TOOLS=new Set(["write","edit","apply_patch"]);
 const SHELL_TOOLS=new Set(["bash","sh","zsh","fish","powershell","pwsh","cmd","shell"]);
@@ -24,7 +25,9 @@ const CORE_INTEGRITY_PATHS=["discipline.config.json","src/index.ts","src/config.
 function isCoreIntegrityPath(path:string){return matchesPath(path,CORE_INTEGRITY_PATHS);}
 
 export const OpenDiscipline:Plugin=async({directory,client})=>{
+ const smoke=createSmokeRecorder(directory);
  if(process.env.OPENDISCIPLINE_SMOKE==="1")console.info("[open-discipline] smoke: plugin loaded for "+directory);
+ if(smoke.enabled)await smoke.record({type:"plugin.loaded",hook:"plugin",outcome:"observed",detail:"OpenDiscipline plugin initialized."});
  const config:NamingDisciplineConfig=await loadConfig(directory);
  const dependencyInventory=config.dependencyTruth.enabled?await discoverDependencies(directory):undefined;
  const registry=new RuleRegistry();
@@ -49,6 +52,7 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    firstUser.parts.unshift({...firstText,text:context});
   },
   "tool.execute.before":async(input,output)=>{
+   if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,outcome:"observed"});
    if(!config.enabled)return;
    if(SHELL_TOOLS.has(input.tool)){
     const args=output.args as Record<string,unknown>;const command=typeof args.command==="string"?args.command:"";if(!command)return;
@@ -88,9 +92,11 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    }
    const blocking=findings.filter(f=>f.severity==="block");const warnings=findings.filter(f=>f.severity==="warn");
    for(const warning of warnings)console.warn("[open-discipline] "+warning.rule+"\n"+warning.message);
+   if(smoke.enabled)for(const finding of findings)await smoke.record({type:"rule.result",hook:"tool.execute.before",sessionID:input.sessionID,tool:input.tool,check:finding.rule,outcome:finding.severity==="block"?"blocked":"warning",detail:finding.message});
    if(blocking.length)throw new Error(blocking.map(f=>f.message).join("\n\n---\n\n"));await persistState(input.sessionID);
   },
   "command.execute.before":async(input)=>{
+   if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"command.execute.before",sessionID:input.sessionID,tool:"command",outcome:"observed",detail:input.command});
    if(!config.enabled)return;
    const destructive=guardShellCommand(input.command,CORE_INTEGRITY_PATHS);
    if(destructive){const message="[open-discipline] "+destructive.severity.toUpperCase()+": "+destructive.message;if(destructive.severity==="block"&&config.mode==="strict")throw new Error(message);console.warn(message);}
@@ -104,8 +110,9 @@ export const OpenDiscipline:Plugin=async({directory,client})=>{
    if(type==="session.idle"){await persistState(sessionID);sessionStates.delete(sessionID);}
   },
   "permission.ask":async(input,output)=>{
+   if(smoke.enabled)await smoke.record({type:"hook.fired",hook:"permission.ask",sessionID:input.sessionID,outcome:"observed"});
    if(!config.enabled||!config.readProtection.enabled||input.type!=="read")return;const path=typeof input.pattern==="string"?input.pattern:"";
-   if(!path||!matchesPath(path,config.readProtection.paths)||matchesPath(path,config.readProtection.allowPaths))return;output.status="deny";
+   if(!path||!matchesPath(path,config.readProtection.paths)||matchesPath(path,config.readProtection.allowPaths))return;output.status="deny";if(smoke.enabled)await smoke.record({type:"guard.result",hook:"permission.ask",sessionID:input.sessionID,check:"protected-read",outcome:"blocked",detail:"Protected read denied: "+path});
    try{await client.app.log({body:{service:"open-discipline",level:"warn",message:"Blocked protected-file read",extra:{path}}});}catch{}
   },
  };
