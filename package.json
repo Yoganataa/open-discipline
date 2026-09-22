@@ -1,5 +1,5 @@
 {
-  "name": "open-disipline",
+  "name": "open-discipline",
   "version": "0.2.0",
   "private": true,
   "description": "OpenCode V1 engineering-discipline plugin with deterministic guardrails and low-noise agent context.",
