@@ -184,7 +184,7 @@ test("dependency rule and architecture boundary are deterministic", () => {
     filePath: "src/a.ts",
     addedText: "import x from \"not-in-manifest\";",
     config,
-    dependencyInventory: { javascript: [], python: [], go: [], rust: [], dart: [] },
+    dependencyInventory: { javascript: [], python: [], go: [], rust: [], dart: [], javascriptTruth: {}, manifestIssues: [] },
   });
   assert.equal(dependencyFindings.length, 1);
 
