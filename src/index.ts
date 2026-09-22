@@ -8,6 +8,7 @@ import { protectedFilesRule } from "./rules/files.ts";
 import { changeSurfaceRule, testIntegrityRule, testEvidenceRule } from "./rules/changes.ts";
 import { extractChanges } from "./scanners/patch.ts";
 import { matchesPath, normalizePath } from "./scanners/paths.ts";
+import { suppressionRule } from "./rules/suppressions.ts";
 
 const FILE_TOOLS = new Set(["write", "edit", "apply_patch"]);
 const CORE_INTEGRITY_PATHS = [
