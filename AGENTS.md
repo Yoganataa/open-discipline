@@ -36,6 +36,17 @@ Every new rule must define:
 
 Rules should be independent and registered through the rule registry.
 
+## Workflow discipline
+
+Use `.opencode/skills/open-discipline-workflow/SKILL.md` and `docs/WORKFLOW.md` as the native workflow guidance for non-trivial work.
+
+- Select the smallest justified workflow level; do not create ceremony for trivial edits.
+- For L2/L3 work, preserve traceability from requirements to tasks to verification evidence.
+- Separate spec-compliance review from code-quality review.
+- Do not claim completion or passing validation without observed evidence.
+- End-user verification is distinct from unit/integration tests when the change has a user-visible path.
+- Workflow guidance is not a substitute for OpenDiscipline enforcement and must never be used to justify bypassing a BLOCK.
+
 ## Scope discipline
 
 Avoid broad repository scans in hot hooks.
