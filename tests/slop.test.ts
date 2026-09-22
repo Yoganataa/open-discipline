@@ -24,7 +24,7 @@ test("warns on debug residue and type ignores", () => {
   const fs = slopRule.check(code("console.log(x); debugger; // @ts-ignore"));
   assert.ok(fs.some((f) => f.rule === "slop:debug-residue"));
   const suppression = suppressionRule.check(code("// @ts-ignore"));
-  assert.ok(suppression.some((f) => f.rule === "suppression"));
+  assert.ok(suppression.some((f) => f.rule === "suppression:ts-ignore"));
 });
 
 test("blocks secret patterns", () => {
