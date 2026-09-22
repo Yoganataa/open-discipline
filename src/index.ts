@@ -23,6 +23,7 @@ const CORE_INTEGRITY_PATHS=["discipline.config.json","src/index.ts","src/config.
 function isCoreIntegrityPath(path:string){return matchesPath(path,CORE_INTEGRITY_PATHS);}
 
 export const OpenDiscipline:Plugin=async({directory,client})=>{
+ if(process.env.OPENDISCIPLINE_SMOKE==="1")console.info("[open-discipline] smoke: plugin loaded for "+directory);
  const config:NamingDisciplineConfig=await loadConfig(directory);
  const dependencyInventory=config.dependencyTruth.enabled?await discoverDependencies(directory):undefined;
  const registry=new RuleRegistry();
