@@ -32,10 +32,15 @@ OpenDiscipline treats these as engineering-control problems. It does not attempt
 
 ## Design
 
-OpenDiscipline has two paths:
+OpenDiscipline has three complementary layers:
 
-1. Context guidance: a short policy is injected into the first user message and is idempotent.
-2. Enforcement: deterministic checks run before consequential tool operations.
+1. Workflow guidance: native OpenCode skills teach the agent how to structure work without requiring a third-party methodology plugin.
+2. Context guidance: a short policy is injected into the first user message and is idempotent.
+3. Enforcement: deterministic checks run before consequential tool operations.
+
+The workflow layer is intentionally separate from enforcement. A workflow instruction can recommend a plan, task list, review, or walkthrough, but it cannot prove that an operation is safe. The enforcement layer remains authoritative at the tool boundary.
+
+See `docs/WORKFLOW.md` for Workflow v1 and `.opencode/skills/open-discipline-workflow/SKILL.md` for the native OpenCode skill.
 
 The enforcement path is local and offline. It does not send source code, prompts, secrets, or telemetry to an external service.
 
@@ -130,6 +135,8 @@ The universal rule contract is now enforced by the rule registry. Every rule dec
 - [x] Configurable architecture boundaries: block explicitly denied imports in configured source layers.
 - [x] Plugin-boundary subagent enforcement verification: child sessions receive the same core `tool.execute.before` guardrails with isolated state.
 - [x] Source-verified compatibility matrix for OpenCode V1 1.18.14, 1.18.30, and 1.18.31; actual binary smoke remains pending.
+- [x] Workflow v1 specification: adaptive L0-L3 workflow with intent, requirements, design, plan, tasks, verification, review, and walkthrough contracts.
+- [x] Native OpenCode workflow skill: select the smallest justified workflow level and enforce evidence-oriented completion guidance.
 
 ### Dependency truth is local-only
 
@@ -143,6 +150,25 @@ The dependency evidence layer is deliberately offline. JavaScript dependencies u
 - [ ] Network-based source analysis in the enforcement hot path.
 - [ ] V2 lifecycle APIs in the V1 plugin.
 - [ ] A giant collection of heuristic rules with unclear false-positive behavior.
+
+## Agentic workflow
+
+OpenDiscipline does not require Superpowers, Kiro, Antigravity, or another third-party workflow package. It adopts selected workflow patterns as native project guidance.
+
+The workflow is adaptive:
+
+- L0: trivial change, no formal artifact required.
+- L1: small bounded change, concise intent/task plus validation.
+- L2: feature work, requirements + acceptance criteria, plan, tasks, verification, and walkthrough; design when material decisions exist.
+- L3: architectural/high-risk work, explicit design, per-task verification, two-stage review, and end-user verification where applicable.
+
+The lifecycle is:
+
+`intent -> requirements -> design (when needed) -> implementation plan -> tasks -> implement -> verify -> spec review -> code review -> end-user verification -> walkthrough`
+
+The design intentionally combines patterns documented by Superpowers, Kiro Specs, Antigravity, Claude Code, and Codex. These references support individual workflow components; OpenDiscipline does not claim that any one product's workflow is universally optimal.
+
+The evidence basis and limitations are recorded in `RESEARCH.md` and `docs/WORKFLOW.md`.
 
 ## Runtime safety and evidence
 
@@ -161,6 +187,8 @@ The runtime design is capability-oriented, not intended to be locked to one exac
 Core enforcement relies on the V1 `tool.execute.before` boundary. Optional hooks such as context transformation and permission handling are supplementary; the plugin should remain useful if an optional hook is unavailable or behaves differently in a particular V1 host.
 
 The project is V1-only. Do not add V2 lifecycle APIs.
+
+The latest-stable smoke workflow is intended to verify the actual released V1 binary rather than treating SDK types or host-source inspection as runtime proof. Historical releases remain useful as regression references, not as the primary daily compatibility target.
 
 See `COMPATIBILITY.md` for the evidence-level matrix. The selected V1 releases have source-level evidence for the core hook and child TaskTool enforcement. Actual binary smoke is intentionally still marked pending; SDK types and host source are not treated as runtime proof.
 
