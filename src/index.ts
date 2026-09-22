@@ -134,25 +134,12 @@ export const OpenDisipline: Plugin = async ({ directory, client }) => {
       const type = (event as { type?: string }).type ?? "";
       if (type !== "command.executed") return;
       const payload = event as { properties?: Record<string, unknown> };
-      const command = typeof payload.properties?.command === "string" ? payload.properties.command : "";
-      if (!command || !isValidationCommand(command)) return;
+      const command = typeof payload.properties?.arguments === "string" ? payload.properties.arguments : "";
       const sessionID = typeof payload.properties?.sessionID === "string" ? payload.properties.sessionID : "";
-      if (!sessionID) return;
-      const state = getState(sessionID);
-      if (validationPassed(payload.properties)) {
-        state.validationPassed++;
-        state.failureRepeats = 0;
-        state.lastFailureKey = undefined;
-      } else {
-        state.validationFailed++;
-        const key = validationKey(command);
-        if (state.lastFailureKey === key) state.failureRepeats++;
-        else state.failureRepeats = 1;
-        state.lastFailureKey = key;
-        if (state.failureRepeats >= 3) {
-          console.warn("[open-disipline] Repeated validation failure detected. Stop changing unrelated code and inspect the original failure/root cause before retrying.");
-        }
-      }
+      if (!command || !sessionID || !isValidationCommand(command)) return;
+      // V1 command.executed identifies the command, but does not expose a portable exit code.
+      // Record the validation attempt only; never infer pass/fail from missing data.
+      getState(sessionID).validationAttempted++;
     },
 
     "permission.ask": async (input, output) => {
