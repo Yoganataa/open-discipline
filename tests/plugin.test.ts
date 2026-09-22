@@ -56,6 +56,36 @@ test("blocks protected reads at the tool boundary", async () => {
   );
 });
 
+
+test("child-session tool enforcement uses the same core boundary with isolated state", async () => {
+  const p = await plugin();
+  const h = p["tool.execute.before"]!;
+  await assert.rejects(
+    () => h(
+      { tool: "write", sessionID: "child-session", callID: "child-write" },
+      { args: { filePath: "src/OpenDisciplineChildRepository.ts", content: "export class OpenDisciplineChildRepository {}" } },
+    ),
+    /Open Discipline/,
+  );
+  await h(
+    { tool: "write", sessionID: "another-child-session", callID: "child-safe" },
+    { args: { filePath: "tests/child.test.ts", content: "expect(true).toBe(true)" } },
+  );
+});
+
+test("core enforcement remains available without optional context or permission hooks", async () => {
+  const p = await plugin();
+  const h = p["tool.execute.before"]!;
+  assert.equal(typeof h, "function");
+  await assert.rejects(
+    () => h(
+      { tool: "read", sessionID: "degraded", callID: "read" },
+      { args: { filePath: ".env" } },
+    ),
+    /protected-file read/,
+  );
+});
+
 test("permission hook uses current V1 read shape", async () => {
   const p = await plugin();
   const h = p["permission.ask"]!;
