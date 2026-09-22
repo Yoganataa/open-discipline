@@ -49,8 +49,8 @@ The core rules stay language-agnostic. Adapters only translate ecosystem-specifi
 - [x] package.json dependency inventory
 - [x] TypeScript/ESLint suppression detection
 - [ ] Workspace/package alias resolution
-- [ ] Lockfile consistency
-- [ ] Installed-package/API truth without network access
+- [x] Lockfile consistency (package.json/package-lock baseline)
+- [x] Installed-package/API truth without network access (local Node resolution + package metadata baseline)
 - [ ] Unused import/change detection
 
 ### Python / ML
@@ -128,9 +128,9 @@ The core rules stay language-agnostic. Adapters only translate ecosystem-specifi
 
 - [x] Declared-vs-imported dependency baseline
 - [x] Explicit architecture boundary rules
-- [ ] Installed API/version truth from local package metadata
-- [ ] Lockfile/manifest consistency
-- [ ] Dependency addition review
+- [x] Installed API/version truth from local package metadata (JavaScript local resolution + installed package metadata baseline)
+- [x] Lockfile/manifest consistency (package.json/package-lock root and declared-range baseline)
+- [x] Dependency addition review (manifest additions surfaced as WARN evidence)
 - [ ] Dependency removal review
 - [ ] Duplicate/existing-abstraction detection
 - [ ] Package/workspace boundary enforcement
