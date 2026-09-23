@@ -44,6 +44,14 @@ function readManifest(root) {
   try { return JSON.parse(readFileSync(path, "utf8")); }
   catch { throw new Error("Invalid OpenDiscipline install manifest: " + path); }
 }
+
+function agentsOutsideHash(text) {
+  const start = text.indexOf(AGENTS_START);
+  const end = text.indexOf(AGENTS_END);
+  if (start === -1 && end === -1) return hashText(text + "\0");
+  if (start === -1 || end < start) throw new Error("Malformed OpenDiscipline AGENTS.md section.");
+  return hashText(text.slice(0, start) + "\0" + text.slice(end + AGENTS_END.length));
+}
 function assertOwnedRoot(root) {
   if (!existsSync(root)) return;
   const manifest = readManifest(root);
@@ -123,11 +131,15 @@ function install() {
     else changes.push({ kind: "file", path: skill, backup: null });
     atomicWrite(skill, readFileSync(skillSource, "utf8"));
 
+    let agentsBackup = null;
+    let agentsCreatedByOpenDiscipline = false;
+    const agentsOriginal = existsSync(agents) ? readFileSync(agents, "utf8") : "";
     if (keepAgents) {
-      const before = existsSync(agents) ? readFileSync(agents, "utf8") : "";
-      const merged = mergeAgentsSection(before);
+      const merged = mergeAgentsSection(agentsOriginal);
       if (merged.changed) {
-        changes.push({ kind: "agents", path: agents, previous: before });
+        if (existsSync(agents)) agentsBackup = backupFile(agents, backupDir);
+        agentsCreatedByOpenDiscipline = !existsSync(agents) && merged.content.length > 0;
+        changes.push({ kind: "agents", path: agents, previous: agentsOriginal, backup: agentsBackup });
         atomicWrite(agents, merged.content);
       }
     }
@@ -146,7 +158,9 @@ function install() {
         ...(start !== -1 && end > start ? [{
           path: agents,
           sectionSha256: managedSectionHash(agentText.slice(start, end + AGENTS_END.length)),
-          createdByOpenDiscipline: changes.some((item) => item.kind === "agents" && item.previous.trim() === ""),
+          outsideSha256: agentsOutsideHash(agentText),
+          backupPath: agentsBackup,
+          createdByOpenDiscipline: agentsCreatedByOpenDiscipline,
         }] : []),
       ],
     };
@@ -203,10 +217,19 @@ function uninstall() {
   if (agentEntry) {
     const current = readFileSync(agents, "utf8");
     const start = current.indexOf(AGENTS_START), end = current.indexOf(AGENTS_END);
+    if (start === -1 || end < start) throw new Error("Managed AGENTS.md section is missing: " + agents);
     const section = current.slice(start, end + AGENTS_END.length);
-    const removed = removeAgentsSection(current, section);
-    if (removed.changed) atomicWrite(agents, removed.content);
-    if (removed.remainingOnlyWhitespace && agentEntry.createdByOpenDiscipline) rmSync(agents, { force: true });
+    if (managedSectionHash(section) !== agentEntry.sectionSha256) {
+      throw new Error("Managed AGENTS.md section was modified; refusing to remove it automatically.");
+    }
+
+    if (agentEntry.outsideSha256 && agentsOutsideHash(current) === agentEntry.outsideSha256 && agentEntry.backupPath && existsSync(agentEntry.backupPath)) {
+      cpSync(agentEntry.backupPath, agents, { force: true });
+    } else {
+      const removed = removeAgentsSection(current, section);
+      if (removed.changed) atomicWrite(agents, removed.content);
+      if (removed.remainingOnlyWhitespace && agentEntry.createdByOpenDiscipline) rmSync(agents, { force: true });
+    }
   }
   rmSync(managedRoot, { recursive: true, force: true });
   console.log("OpenDiscipline uninstalled successfully.");
