@@ -100,6 +100,8 @@ Status: [~]
 
 Goal: make OpenDiscipline installable with `bunx` without npm publishing and without taking ownership of existing OpenCode/project configuration.
 
+Installation UX decision: one cross-platform installer with `install`, `status`, and `uninstall` commands. GitHub source is supplied by Bun; the installer does not require Git on the target machine. Global is the default; `--local` is explicit. Uninstall verifies ownership hashes before removing anything. User-edited AGENTS.md content is never silently overwritten.
+
 Implemented:
 - GitHub-backed `bunx` installer entry point;
 - global and project-local installation scopes;
@@ -123,7 +125,7 @@ Current limitation:
 
 Remaining acceptance:
 - [ ] pin default installer ref to an immutable release tag/commit;
-- [ ] add update/uninstall commands with ownership/hash checks;
+- [x] add update/uninstall/status commands with ownership/hash checks;
 - [ ] verify Windows/Linux/macOS installer paths on real hosts;
 - [ ] verify Bun GitHub package execution on supported Bun versions;
 - [ ] perform OpenCode V1 local smoke after installation;
