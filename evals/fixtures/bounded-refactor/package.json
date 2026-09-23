@@ -1,0 +1,8 @@
+{
+  "name": "fixture-bounded-refactor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
