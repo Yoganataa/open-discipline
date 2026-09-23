@@ -81,7 +81,7 @@ test("evaluation fixtures referenced by scenarios contain deterministic executio
 
 test("scenario checks support independent verifier and repository requirements", async () => {
   const raw = JSON.parse(await readFile(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
-  assert.equal(validateScenario(raw), []);
+  assert.deepEqual(validateScenario(raw), []);
   assert.equal(raw.verifier, "evals/verifiers/feature-from-scratch.mjs");
   assert.deepEqual(raw.checks?.requiredFiles, ["src/todos.js", "test/todos.test.js"]);
   assert.deepEqual(raw.checks?.requiredArtifacts, [
