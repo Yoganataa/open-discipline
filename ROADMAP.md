@@ -91,6 +91,46 @@ Acceptance:
 - core guardrail paths cannot be modified through normal guarded writes;
 - tests never weaken themselves to satisfy this phase.
 
+
+---
+
+# Phase 0.5 — Safe GitHub-only installation and instruction ownership
+
+Status: [~]
+
+Goal: make OpenDiscipline installable with `bunx` without npm publishing and without taking ownership of existing OpenCode/project configuration.
+
+Implemented:
+- GitHub-backed `bunx` installer entry point;
+- global and project-local installation scopes;
+- dedicated OpenDiscipline source checkout;
+- generated local plugin loader under OpenCode's documented plugin directory;
+- generated workflow skill under OpenCode's skill directory;
+- marker-scoped `AGENTS.md` merge;
+- refusal to overwrite an unmanaged plugin file;
+- backup of files that OpenDiscipline owns before replacement;
+- install manifest with source ref, resolved commit, scope, and managed-file hashes;
+- duplicate-load guard when global and project-local copies point to the same plugin.
+
+Ownership boundary:
+- OpenDiscipline may own only its dedicated source directory, generated plugin loader, generated workflow skill, and its own marked section in `AGENTS.md`.
+- It must not rewrite `opencode.json`, existing MCP sections, existing `AGENTS.md` sections, agent definitions, unrelated skills, or project configuration.
+- An existing unmanaged file at the target plugin path is a hard installation error.
+- An edited OpenDiscipline-owned `AGENTS.md` section must not be silently overwritten.
+
+Current limitation:
+- The installer currently targets the repository's `maturity-hardening` ref by default while the distribution/versioning policy is being finalized. A stable release tag should become the default before declaring this phase complete.
+
+Remaining acceptance:
+- [ ] pin default installer ref to an immutable release tag/commit;
+- [ ] add update/uninstall commands with ownership/hash checks;
+- [ ] verify Windows/Linux/macOS installer paths on real hosts;
+- [ ] verify Bun GitHub package execution on supported Bun versions;
+- [ ] perform OpenCode V1 local smoke after installation;
+- [ ] document rollback/recovery procedure;
+- [ ] ensure installer source does not introduce runtime dependencies into the enforcement hot path.
+
+
 ---
 
 # Phase 1 — Universal evidence, scope, and rule contracts
