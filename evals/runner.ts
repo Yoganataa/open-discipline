@@ -6,6 +6,7 @@ import { join, relative, resolve } from "node:path";
 
 
 import { validateScenario, type Scenario } from "./contract.ts";
+import { parseOpenCodeStream } from "./opencode-stream.ts";
 
 export interface BehavioralRunOptions {
   scenario: Scenario;
@@ -75,26 +76,6 @@ function matchesPath(path: string, patterns: string[]): boolean {
   });
 }
 
-function collectToolCommands(events: unknown[]): string[] {
-  const commands: string[] = [];
-  for (const event of events) {
-    if (!event || typeof event !== "object") continue;
-    const raw = event as Record<string, unknown>;
-    if (raw.type !== "tool_use") continue;
-    const part = raw.part;
-    if (!part || typeof part !== "object") continue;
-    const p = part as Record<string, unknown>;
-    if (p.tool !== "bash") continue;
-    const state = p.state;
-    if (!state || typeof state !== "object") continue;
-    const input = (state as Record<string, unknown>).input;
-    if (!input || typeof input !== "object") continue;
-    const command = (input as Record<string, unknown>).command;
-    if (typeof command === "string") commands.push(command);
-  }
-  return commands;
-}
-
 export async function runBehavioralEvaluation(options: BehavioralRunOptions): Promise<BehavioralRunResult> {
   const errors = validateScenario(options.scenario);
   if (errors.length > 0) throw new Error("Invalid scenario: " + errors.join(", "));
@@ -147,12 +128,8 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
   const command = options.opencodeCommand ?? "opencode";
   const args = ["run", "--format", "json", prompt];
   const execution = await runCommand(command, args, workspace, timeoutMs);
-  const events = execution.stdout
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((line) => {
-      try { return JSON.parse(line); } catch { return { type: "invalid-json", raw: line }; }
-    });
+  const stream = parseOpenCodeStream(execution.stdout);
+  const events = stream.events;
 
   await mkdir(outputRoot, { recursive: true });
   await cp(sourceFixture, join(outputRoot, "fixture-baseline"), { recursive: true });
@@ -167,7 +144,7 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
   }, null, 2), "utf8");
 
   const changedFiles = await listChangedFiles(workspace);
-  const commands = collectToolCommands(events);
+  const commands = stream.toolCalls\n    .filter((call) => call.tool === "bash")\n    .map((call) => typeof call.input.command === "string" ? call.input.command : "");
   const commandPatterns = options.scenario.checks?.requiredCommands ?? [];
   for (const pattern of commandPatterns) {
     const observed = commands.some((commandLine) => commandLine.includes(pattern));
@@ -180,7 +157,7 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
     if (!observed) failures.push("missing-command:" + pattern);
   }
   const evidence: BehavioralEvidence[] = [];
-  const failures: string[] = [];
+  const failures: string[] = [];\n\n  if (stream.invalidLines > 0) failures.push("invalid-json-lines:" + stream.invalidLines);\n  if (stream.incompleteSteps > 0) failures.push("incomplete-opencode-stream");\n  if (stream.errors.length > 0) failures.push("opencode-errors:" + stream.errors.join(" | "));
 
   if (options.scenario.checks?.allowedChangedPaths) {
     const unexpected = changedFiles.filter((path) => !matchesPath(path, options.scenario.checks!.allowedChangedPaths!));
