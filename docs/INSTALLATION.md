@@ -77,15 +77,55 @@ Do not install OpenDiscipline both globally and locally unless you deliberately 
 
 OpenCode loads both global and project plugin directories. OpenDiscipline therefore includes a process-level duplicate-load guard so the same plugin implementation does not register its hooks twice when both loaders point to it.
 
-## Update and rollback
+## Update, status, and uninstall
 
-The current installer supports safe replacement of managed files and creates backups, but update/uninstall commands are intentionally not declared complete yet.
+The same command handles the lifecycle. The user does not need to delete individual plugin files manually.
 
-Until those commands are implemented:
+Install globally:
 
-1. keep the generated backup directory;
-2. do not manually edit the generated loader;
-3. if an installation must be reverted, stop OpenCode and restore the relevant backed-up managed files.
+```sh
+bunx --package github:Yoganataa/open-discipline#maturity-hardening open-discipline-install
+```
+
+Install into the current project:
+
+```sh
+bunx --package github:Yoganataa/open-discipline#maturity-hardening open-discipline-install --local
+```
+
+Check ownership and health:
+
+```sh
+bunx --package github:Yoganataa/open-discipline#maturity-hardening open-discipline-install status
+```
+
+For project-local:
+
+```sh
+bunx --package github:Yoganataa/open-discipline#maturity-hardening open-discipline-install status --local
+```
+
+Uninstall:
+
+```sh
+bunx --package github:Yoganataa/open-discipline#maturity-hardening open-discipline-install uninstall
+```
+
+Project-local uninstall:
+
+```sh
+bunx --package github:Yoganataa/open-discipline#maturity-hardening open-discipline-install uninstall --local
+```
+
+Uninstall first verifies the install manifest and hashes. If a managed plugin, skill, or OpenDiscipline section in `AGENTS.md` was modified outside the installer, it stops rather than deleting user changes.
+
+If OpenDiscipline created an otherwise-empty `AGENTS.md`, uninstall may remove that file. If `AGENTS.md` contains other content, only the marked OpenDiscipline section is removed.
+
+There is no separate OS-specific uninstall program. The same Bun command is used on Linux, Windows, and macOS.
+
+The installer itself does not require Git on the target machine; Bun supplies the GitHub package source. The current source package contains the runtime files needed by the plugin, so installation does not run `npm install` or execute dependency lifecycle scripts.
+
+Rollback backups are retained outside the managed source directory under the OpenCode configuration root. They are not automatically deleted.
 
 ## Verification
 
