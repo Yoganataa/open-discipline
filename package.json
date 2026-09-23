@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "eval:validate": "node --experimental-strip-types --test tests/evals.test.ts",
     "smoke:opencode": "node scripts/smoke-opencode.mjs",
-    "smoke:report": "node scripts/smoke-report.mjs"
+    "smoke:report": "node scripts/smoke-report.mjs",
+    "eval:behavior": "node --experimental-strip-types scripts/eval-behavior.mjs"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.18.30",
