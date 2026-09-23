@@ -1,135 +1,221 @@
-#!/usr/bin/env node
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, cpSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { AGENTS_SECTION, getAgentsPath, getManagedRoot, getPluginPath, getSkillPath, hashText, managedMarkerPresent, mergeAgentsSection } from "./installer-lib.mjs";
+#!/usr/bin/env bun
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, cpSync, readdirSync, statSync } from "node:fs";
+import {
+  AGENTS_END, AGENTS_START, getAgentsPath, getManagedRoot, getPluginPath, getSkillPath,
+  hashText, managedMarkerPresent, mergeAgentsSection, removeAgentsSection, managedSectionHash,
+} from "./installer-lib.mjs";
 
-const REPO = "Yoganataa/open-discipline";
+const SOURCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const REPOSITORY = "https://github.com/Yoganataa/open-discipline";
 const DEFAULT_REF = "maturity-hardening";
-const scope = process.argv.includes("--local") ? "project" : "global";
-const refArg = process.argv.find((arg) => arg.startsWith("--ref="));
-const ref = refArg ? refArg.slice("--ref=".length) : DEFAULT_REF;
-const keepAgents = !process.argv.includes("--no-agents");
+const args = process.argv.slice(2);
+const command = args[0] && !args[0].startsWith("-") ? args[0] : "install";
+const scope = args.includes("--local") || args.includes("--scope=project") ? "project" : "global";
+const keepAgents = !args.includes("--no-agents");
+const refArg = args.find((arg) => arg.startsWith("--ref="));
+const requestedRef = refArg ? refArg.slice("--ref=".length) : DEFAULT_REF;
 
-function run(command, args, options = {}) { return execFileSync(command, args, { stdio: "inherit", ...options }); }
-function runQuiet(command, args, options = {}) { return execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...options }).trim(); }
-function backup(path, backupDir) {
-  if (!existsSync(path)) return;
-  mkdirSync(backupDir, { recursive: true });
-  cpSync(path, join(backupDir, path.split(/[\\/]/).pop()), { recursive: true, errorOnExist: false });
+function paths() {
+  return {
+    managedRoot: resolve(getManagedRoot(scope)),
+    plugin: resolve(getPluginPath(scope)),
+    skill: resolve(getSkillPath(scope)),
+    agents: resolve(getAgentsPath(scope)),
+  };
 }
-function atomicReplace(path, content) {
+function atomicWrite(path, content) {
+  mkdirSync(dirname(path), { recursive: true });
   const temp = path + ".tmp-" + process.pid;
   writeFileSync(temp, content, "utf8");
   renameSync(temp, path);
 }
-
-const scopeRoot = resolve(getManagedRoot(scope));
-const pluginPath = resolve(getPluginPath(scope));
-const skillPath = resolve(getSkillPath(scope));
-const agentsPath = resolve(getAgentsPath(scope));
-const backupDir = join(scopeRoot, "backups", new Date().toISOString().replaceAll(":", "-"));
-mkdirSync(scopeRoot, { recursive: true });
-
-function preflight() {
-  if (existsSync(pluginPath)) {
-    const existing = readFileSync(pluginPath, "utf8");
-    if (!managedMarkerPresent(existing)) throw new Error("Refusing to overwrite unmanaged plugin file: " + pluginPath);
+function backupFile(path, backupDir) {
+  if (!existsSync(path)) return null;
+  mkdirSync(backupDir, { recursive: true });
+  const target = join(backupDir, path.split(/[\\/]/).pop());
+  cpSync(path, target, { recursive: true, force: true });
+  return target;
+}
+function readManifest(root) {
+  const path = join(root, "install-manifest.json");
+  if (!existsSync(path)) return undefined;
+  try { return JSON.parse(readFileSync(path, "utf8")); }
+  catch { throw new Error("Invalid OpenDiscipline install manifest: " + path); }
+}
+function assertOwnedRoot(root) {
+  if (!existsSync(root)) return;
+  const manifest = readManifest(root);
+  if (!manifest || manifest.repository !== REPOSITORY || manifest.schemaVersion !== 1) {
+    throw new Error("Refusing to modify an existing path without an OpenDiscipline ownership manifest: " + root);
   }
-  if (keepAgents && existsSync(agentsPath)) {
-    const existing = readFileSync(agentsPath, "utf8");
-    const start = existing.indexOf("<!-- open-discipline:start -->");
-    const end = existing.indexOf("<!-- open-discipline:end -->");
-    if ((start === -1) !== (end === -1) || (start !== -1 && end < start)) {
-      throw new Error("Refusing to modify malformed AGENTS.md OpenDiscipline markers: " + agentsPath);
-    }
-    if (start !== -1) {
-      const currentSection = existing.slice(start, end + "<!-- open-discipline:end -->".length);
-      const normalizedSection = currentSection.replaceAll("\\r\\n", "\\n");
-      if (normalizedSection !== AGENTS_SECTION) {
-        const manifestPath = join(scopeRoot, "install-manifest.json");
-        const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
-        const recorded = manifest?.managedFiles?.find((entry) => entry.path === agentsPath)?.sectionSha256;
-        if (!recorded || hashText(normalizedSection) !== recorded) {
-          throw new Error("Refusing to overwrite a user-edited OpenDiscipline AGENTS.md section: " + agentsPath);
-        }
+}
+function assertPlugin(plugin) {
+  if (existsSync(plugin) && !managedMarkerPresent(readFileSync(plugin, "utf8"))) {
+    throw new Error("Refusing to overwrite unmanaged plugin file: " + plugin);
+  }
+}
+function assertAgents(agents, root) {
+  if (!existsSync(agents)) return;
+  const text = readFileSync(agents, "utf8");
+  const start = text.indexOf(AGENTS_START), end = text.indexOf(AGENTS_END);
+  if (start === -1 && end === -1) return;
+  if ((start === -1) !== (end === -1) || end < start) throw new Error("Malformed OpenDiscipline AGENTS.md markers: " + agents);
+  const section = text.slice(start, end + AGENTS_END.length);
+  const manifest = readManifest(root);
+  const entry = manifest?.managedFiles?.find((item) => item.path === agents);
+  if (!entry?.sectionSha256 || managedSectionHash(section) !== entry.sectionSha256) {
+    throw new Error("The OpenDiscipline section in AGENTS.md was edited; refusing to overwrite it automatically.");
+  }
+}
+function stageSource(target) {
+  mkdirSync(target, { recursive: true });
+  for (const [source, destination] of [
+    ["src", "src"],
+    [".opencode/skills/open-discipline-workflow/SKILL.md", ".opencode/skills/open-discipline-workflow/SKILL.md"],
+    ["package.json", "package.json"],
+  ]) {
+    const from = resolve(SOURCE_ROOT, source);
+    if (!existsSync(from)) throw new Error("Installer package is incomplete; missing " + source);
+    const to = resolve(target, destination);
+    mkdirSync(dirname(to), { recursive: true });
+    cpSync(from, to, { recursive: true, force: true });
+  }
+}
+function install() {
+  const { managedRoot, plugin, skill, agents } = paths();
+  assertOwnedRoot(managedRoot);
+  assertPlugin(plugin);
+  assertAgents(agents, managedRoot);
+
+  const backupDir = join(dirname(managedRoot), "open-discipline-backups", new Date().toISOString().replaceAll(":", "-"));
+  const stage = join(dirname(managedRoot), ".open-discipline-stage-" + process.pid);
+  const changes = [];
+  rmSync(stage, { recursive: true, force: true });
+
+  try {
+    stageSource(stage);
+    const oldSourceBackup = existsSync(managedRoot) ? backupFile(managedRoot, backupDir) : null;
+    if (existsSync(managedRoot)) rmSync(managedRoot, { recursive: true, force: true });
+    renameSync(stage, managedRoot);
+    changes.push({ kind: "source", path: managedRoot, backup: oldSourceBackup });
+
+    if (existsSync(plugin)) changes.push({ kind: "file", path: plugin, backup: backupFile(plugin, backupDir) });
+    else changes.push({ kind: "file", path: plugin, backup: null });
+    atomicWrite(plugin, [
+      "/* open-discipline:managed */",
+      "/* source: " + REPOSITORY + "@" + requestedRef + " */",
+      'export { default } from "../open-discipline/src/index.ts";',
+      "",
+    ].join("\n"));
+
+    const skillSource = resolve(managedRoot, ".opencode/skills/open-discipline-workflow/SKILL.md");
+    if (!existsSync(skillSource)) throw new Error("Installed source is missing workflow skill.");
+    if (existsSync(skill)) changes.push({ kind: "file", path: skill, backup: backupFile(skill, backupDir) });
+    else changes.push({ kind: "file", path: skill, backup: null });
+    atomicWrite(skill, readFileSync(skillSource, "utf8"));
+
+    if (keepAgents) {
+      const before = existsSync(agents) ? readFileSync(agents, "utf8") : "";
+      const merged = mergeAgentsSection(before);
+      if (merged.changed) {
+        changes.push({ kind: "agents", path: agents, previous: before });
+        atomicWrite(agents, merged.content);
       }
     }
+
+    const agentText = existsSync(agents) ? readFileSync(agents, "utf8") : "";
+    const start = agentText.indexOf(AGENTS_START), end = agentText.indexOf(AGENTS_END);
+    const manifest = {
+      schemaVersion: 1,
+      repository: REPOSITORY,
+      ref: requestedRef,
+      scope,
+      managedRoot,
+      managedFiles: [
+        { path: plugin, sha256: hashText(readFileSync(plugin, "utf8")) },
+        { path: skill, sha256: hashText(readFileSync(skill, "utf8")) },
+        ...(start !== -1 && end > start ? [{
+          path: agents,
+          sectionSha256: managedSectionHash(agentText.slice(start, end + AGENTS_END.length)),
+          createdByOpenDiscipline: changes.some((item) => item.kind === "agents" && item.previous.trim() === ""),
+        }] : []),
+      ],
+    };
+    atomicWrite(join(managedRoot, "install-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+    console.log("OpenDiscipline installed successfully.");
+    console.log("Scope: " + scope);
+    console.log("Source: " + REPOSITORY + "@" + requestedRef);
+    console.log("Restart OpenCode to load the plugin.");
+  } catch (error) {
+    rmSync(stage, { recursive: true, force: true });
+    throw error;
   }
 }
-
-preflight();
-
-if (!existsSync(resolve(scopeRoot, ".git"))) {
-  const parent = resolve(scopeRoot, "..");
-  mkdirSync(parent, { recursive: true });
-  const tempClone = join(tmpdir(), "open-discipline-" + process.pid);
-  rmSync(tempClone, { recursive: true, force: true });
-  try {
-    const sourceUrl = "https://github.com/" + REPO + ".git";
-    if (/^[0-9a-f]{40}$/i.test(ref)) {
-      run("git", ["clone", "--depth", "1", sourceUrl, tempClone]);
-      run("git", ["-C", tempClone, "fetch", "--depth", "1", "origin", ref]);
-      run("git", ["-C", tempClone, "checkout", "--detach", "FETCH_HEAD"]);
-    } else {
-      run("git", ["clone", "--depth", "1", "--branch", ref, sourceUrl, tempClone]);
+function verifyEntry(entry) {
+  if (!existsSync(entry.path)) throw new Error("Managed file is missing: " + entry.path);
+  if (entry.sha256 && hashText(readFileSync(entry.path, "utf8")) !== entry.sha256) {
+    throw new Error("Managed file was modified outside OpenDiscipline: " + entry.path);
+  }
+  if (entry.sectionSha256) {
+    const text = readFileSync(entry.path, "utf8");
+    const start = text.indexOf(AGENTS_START), end = text.indexOf(AGENTS_END);
+    if (start === -1 || end < start) throw new Error("Managed AGENTS.md section is missing: " + entry.path);
+    if (managedSectionHash(text.slice(start, end + AGENTS_END.length)) !== entry.sectionSha256) {
+      throw new Error("Managed AGENTS.md section was modified: " + entry.path);
     }
-    const commit = runQuiet("git", ["-C", tempClone, "rev-parse", "HEAD"]);
-    cpSync(tempClone, scopeRoot, { recursive: true });
-    writeFileSync(join(scopeRoot, "INSTALL-COMMIT"), commit + "\n", "utf8");
-  } finally { rmSync(tempClone, { recursive: true, force: true }); }
-} else {
-  const origin = runQuiet("git", ["-C", scopeRoot, "remote", "get-url", "origin"]);
-  if (!origin.includes(REPO)) throw new Error("Refusing to reuse managed root with an unexpected git origin: " + origin);
-  run("git", ["-C", scopeRoot, "fetch", "--depth", "1", "origin", ref]);
-  if (/^[0-9a-f]{40}$/i.test(ref)) run("git", ["-C", scopeRoot, "checkout", "--detach", "FETCH_HEAD"]);\n  else run("git", ["-C", scopeRoot, "checkout", "--detach", "origin/" + ref]);
-  writeFileSync(join(scopeRoot, "INSTALL-COMMIT"), runQuiet("git", ["-C", scopeRoot, "rev-parse", "HEAD"]) + "\n", "utf8");
-}
-
-mkdirSync(resolve(pluginPath, ".."), { recursive: true });
-if (existsSync(pluginPath)) {
-  const existing = readFileSync(pluginPath, "utf8");
-  if (!managedMarkerPresent(existing)) throw new Error("Refusing to overwrite unmanaged plugin file: " + pluginPath);
-  backup(pluginPath, backupDir);
-}
-const loader = ["/* open-discipline:managed */", "/* source: github.com/" + REPO + "@" + ref + " */", 'export { default } from "../open-discipline/src/index.ts";', ""].join("\n");
-atomicReplace(pluginPath, loader);
-
-const skillSource = resolve(scopeRoot, ".opencode", "skills", "open-discipline-workflow", "SKILL.md");
-if (!existsSync(skillSource)) throw new Error("Installed source is missing workflow skill: " + skillSource);
-mkdirSync(resolve(skillPath, ".."), { recursive: true });
-if (existsSync(skillPath)) backup(skillPath, backupDir);
-atomicReplace(skillPath, readFileSync(skillSource, "utf8"));
-
-if (keepAgents) {
-  const existing = existsSync(agentsPath) ? readFileSync(agentsPath, "utf8") : "";
-  const merged = mergeAgentsSection(existing);
-  if (merged.changed) {
-    if (existsSync(agentsPath)) backup(agentsPath, backupDir);
-    mkdirSync(resolve(agentsPath, ".."), { recursive: true });
-    atomicReplace(agentsPath, merged.content);
   }
 }
+function uninstall() {
+  const { managedRoot, plugin, skill, agents } = paths();
+  const manifest = readManifest(managedRoot);
+  if (!manifest || manifest.repository !== REPOSITORY || manifest.schemaVersion !== 1) {
+    console.log("OpenDiscipline is not installed in this scope.");
+    return;
+  }
+  for (const entry of manifest.managedFiles ?? []) verifyEntry(entry);
 
-const manifest = {
-  schemaVersion: 1,
-  repository: "https://github.com/" + REPO,
-  ref,
-  commit: readFileSync(join(scopeRoot, "INSTALL-COMMIT"), "utf8").trim(),
-  scope,
-  managedRoot: scopeRoot,
-  managedFiles: [
-    { path: pluginPath, sha256: hashText(readFileSync(pluginPath, "utf8")) },
-    { path: skillPath, sha256: hashText(readFileSync(skillPath, "utf8")) },
-    ...(keepAgents && existsSync(agentsPath) ? [{ path: agentsPath, sectionSha256: hashText(AGENTS_SECTION) }] : []),
-  ],
-};
-writeFileSync(join(scopeRoot, "install-manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf8");
+  rmSync(plugin, { force: true });
+  rmSync(skill, { force: true });
 
-console.log("OpenDiscipline installed from GitHub " + REPO + "@" + ref);
-console.log("Scope: " + scope);
-console.log("Managed source: " + scopeRoot);
-console.log("Plugin: " + pluginPath);
-console.log("Skill: " + skillPath);
-if (keepAgents) console.log("AGENTS.md: " + agentsPath + " (marker-scoped, existing content preserved)");
+  const agentEntry = manifest.managedFiles.find((entry) => entry.path === agents);
+  if (agentEntry) {
+    const current = readFileSync(agents, "utf8");
+    const start = current.indexOf(AGENTS_START), end = current.indexOf(AGENTS_END);
+    const section = current.slice(start, end + AGENTS_END.length);
+    const removed = removeAgentsSection(current, section);
+    if (removed.changed) atomicWrite(agents, removed.content);
+    if (removed.remainingOnlyWhitespace && agentEntry.createdByOpenDiscipline) rmSync(agents, { force: true });
+  }
+  rmSync(managedRoot, { recursive: true, force: true });
+  console.log("OpenDiscipline uninstalled successfully.");
+}
+function status() {
+  const { managedRoot, plugin, skill, agents } = paths();
+  const manifest = readManifest(managedRoot);
+  if (!manifest) { console.log("OpenDiscipline: not installed (" + scope + ")"); return; }
+  try {
+    for (const entry of manifest.managedFiles ?? []) verifyEntry(entry);
+    console.log("Health: OK");
+  } catch (error) {
+    console.log("Health: NEEDS ATTENTION");
+    console.log(String(error?.message ?? error));
+  }
+  console.log("Scope: " + scope);
+  console.log("Source: " + manifest.repository + "@" + manifest.ref);
+  console.log("Plugin: " + plugin);
+  console.log("Skill: " + skill);
+  console.log("AGENTS.md: " + agents);
+}
+try {
+  if (!["install", "uninstall", "status"].includes(command)) {
+    throw new Error("Usage: open-discipline [install|uninstall|status] [--local] [--no-agents] [--ref=<ref>]");
+  }
+  if (command === "install") install();
+  else if (command === "uninstall") uninstall();
+  else status();
+} catch (error) {
+  console.error("OpenDiscipline: " + (error?.message ?? String(error)));
+  process.exitCode = 1;
+}
