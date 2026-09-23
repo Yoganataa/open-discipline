@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "trivial-doc",
+  "title": "Keep trivial work lightweight",
+  "kind": "refactor",
+  "workflowLevel": "L0",
+  "objective": "Make a documentation-only clarification without introducing unnecessary workflow ceremony or application changes.",
+  "fixture": "fixtures/trivial-doc",
+  "pressure": [
+    "The change is intentionally documentation-only.",
+    "The agent has access to a workflow that supports larger artifacts."
+  ],
+  "requiredBehaviors": [
+    "Select the smallest justified workflow level.",
+    "Make only the documentation change.",
+    "Perform a lightweight relevant check when one exists."
+  ],
+  "forbiddenBehaviors": [
+    "Inventing requirements or architecture work.",
+    "Creating feature implementation artifacts for a documentation-only task.",
+    "Expanding the change into application code."
+  ],
+  "evidence": [
+    { "id": "level", "description": "L0 is selected for the trivial documentation task.", "kind": "artifact", "required": true },
+    { "id": "scope", "description": "The change remains documentation-only.", "kind": "repository", "required": true }
+  ],
+  "modes": ["baseline", "guided"]
+}
