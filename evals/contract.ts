@@ -117,6 +117,10 @@ export function validateEvaluationResult(value: unknown): string[] {
   return errors;
 }
 
+function rawScenarioID(result: EvaluationResult): string {
+  return result.scenarioID;
+}
+
 export function requiredEvidencePassed(scenario: Scenario, result: EvaluationResult): boolean {
   if (result.scenarioID !== scenario.id) return false;
   if (result.outcome !== "completed") return false;
