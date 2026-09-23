@@ -46,11 +46,12 @@ function preflight() {
     }
     if (start !== -1) {
       const currentSection = existing.slice(start, end + "<!-- open-discipline:end -->".length);
-      if (currentSection !== AGENTS_SECTION) {
+      const normalizedSection = currentSection.replaceAll("\\r\\n", "\\n");
+      if (normalizedSection !== AGENTS_SECTION) {
         const manifestPath = join(scopeRoot, "install-manifest.json");
         const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
         const recorded = manifest?.managedFiles?.find((entry) => entry.path === agentsPath)?.sectionSha256;
-        if (!recorded || hashText(currentSection) !== recorded) {
+        if (!recorded || hashText(normalizedSection) !== recorded) {
           throw new Error("Refusing to overwrite a user-edited OpenDiscipline AGENTS.md section: " + agentsPath);
         }
       }
