@@ -69,13 +69,9 @@ export function mergeAgentsSection(original) {
     };
   }
 
-  const separator = original.length === 0
-    ? ""
-    : original.endsWith(newline)
-      ? newline
-      : newline + newline;
+  const separator = original.length === 0 ? "" : original.endsWith(newline) ? newline : newline + newline;
   return {
-    content: original + separator + section + newline,
+    content: original + separator + section,
     changed: true,
     inserted: true,
   };
@@ -105,7 +101,7 @@ export function removeAgentsSection(original, expectedSection) {
   let before = original.slice(0, start);
   let after = original.slice(endExclusive);
 
-  if (before.endsWith(newline + newline)) before = before.slice(0, -newline.length);
+  if (before.endsWith(newline + newline)) before = before.slice(0, -2 * newline.length);
   else if (before.endsWith(newline)) before = before.slice(0, -newline.length);
 
   if (after.startsWith(newline)) after = after.slice(newline.length);
