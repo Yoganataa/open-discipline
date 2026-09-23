@@ -91,8 +91,12 @@ export function mergeConfig(input?:unknown):NamingDisciplineConfig{
   return base;
 }
 
+function openCodeConfigDirectory():string{
+  if(process.env.OPENCODE_CONFIG_DIR)return process.env.OPENCODE_CONFIG_DIR;
+  return join(homedir(),".config","opencode");
+}
 export async function loadConfig(directory:string,fileName="discipline.config.json"):Promise<NamingDisciplineConfig>{
-  const global=await readConfigFile(join(homedir(),".config","opencode",fileName));
+  const global=await readConfigFile(join(openCodeConfigDirectory(),fileName));
   const project=await readConfigFile(join(directory,fileName));
   const config=mergeConfig(deepMerge(global??{},project??{}));
   if(config.autoBrands)config.brands=[...new Set([...config.brands,...await detectBrands(directory,config.ignoredAutoBrands)])];
