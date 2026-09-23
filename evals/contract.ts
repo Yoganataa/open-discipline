@@ -24,6 +24,15 @@ export interface Scenario {
   forbiddenBehaviors: string[];
   evidence: EvidenceRequirement[];
   modes: EvalMode[];
+  checks?: ScenarioChecks;
+}
+
+export interface ScenarioChecks {
+  allowedChangedPaths?: string[];
+  forbiddenChangedPaths?: string[];
+  requiredArtifacts?: string[];
+  requiredCommands?: string[];
+  forbiddenCommands?: string[];
 }
 
 export interface EvaluationEvidence {
