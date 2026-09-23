@@ -150,6 +150,19 @@ function install() {
     console.log("Restart OpenCode to load the plugin.");
   } catch (error) {
     rmSync(stage, { recursive: true, force: true });
+    for (const change of [...changes].reverse()) {
+      try {
+        if (change.kind === "source") {
+          rmSync(change.path, { recursive: true, force: true });
+          if (change.backup) cpSync(change.backup, change.path, { recursive: true, force: true });
+        } else if (change.kind === "file") {
+          if (change.backup) cpSync(change.backup, change.path, { recursive: true, force: true });
+          else rmSync(change.path, { recursive: true, force: true });
+        } else if (change.kind === "agents") {
+          atomicWrite(change.path, change.previous);
+        }
+      } catch {}
+    }
     throw error;
   }
 }
