@@ -25,6 +25,8 @@ export interface Scenario {
   evidence: EvidenceRequirement[];
   modes: EvalMode[];
   checks?: ScenarioChecks;
+  verifier?: string;
+  baselineVerifier?: "pass" | "fail" | "ignore";
 }
 
 export interface ScenarioChecks {
@@ -58,6 +60,8 @@ export function validateScenario(value: unknown): string[] {
   const raw = value as Record<string, unknown>;
 
   if (raw.schemaVersion !== EVAL_SCHEMA_VERSION) errors.push("schemaVersion");
+  if (raw.verifier !== undefined && (typeof raw.verifier !== "string" || !raw.verifier)) errors.push("verifier");
+  if (raw.baselineVerifier !== undefined && !["pass", "fail", "ignore"].includes(String(raw.baselineVerifier))) errors.push("baselineVerifier");
   for (const key of ["id", "title", "objective", "fixture"] as const) {
     if (typeof raw[key] !== "string" || !raw[key]) errors.push(key);
   }
