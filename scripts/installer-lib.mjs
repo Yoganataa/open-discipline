@@ -146,3 +146,15 @@ export function managedMarkerPresent(value: string): boolean {
 export function getRelativeInstallSource(scriptFile: string): string {
   return resolve(dirname(scriptFile), "..");
 }
+
+export function getSourceRoot(scriptFile) {
+  return resolve(dirname(scriptFile), "..");
+}
+
+export function normalizeManagedText(value) {
+  return value.replaceAll("\r\n", "\n");
+}
+
+export function managedSectionHash(value) {
+  return hashText(normalizeManagedText(value));
+}
