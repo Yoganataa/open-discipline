@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+
 
 import { validateScenario, type Scenario } from "./contract.ts";
 
@@ -106,8 +106,29 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
   const timeoutMs = options.timeoutMs ?? 10 * 60_000;
   const sourceFixture = resolve(process.cwd(), "evals", options.scenario.fixture);
   const workspace = await mkdtemp(join(tmpdir(), "open-discipline-eval-"));
-  const outputRoot = options.outputRoot ? resolve(options.outputRoot) : join(workspace, ".open-discipline-eval");
+  const outputRoot = options.outputRoot
+    ? resolve(options.outputRoot)
+    : await mkdtemp(join(tmpdir(), "open-discipline-eval-artifacts-"));
   await cp(sourceFixture, workspace, { recursive: true });
+  await runCommand("git", ["init", "-q"], workspace, 10_000);
+  await runCommand("git", ["config", "user.email", "eval@open-discipline.local"], workspace, 10_000);
+  await runCommand("git", ["config", "user.name", "OpenDiscipline Eval"], workspace, 10_000);
+  await runCommand("git", ["add", "."], workspace, 10_000);
+  const baselineCommit = await runCommand("git", ["commit", "-qm", "fixture baseline"], workspace, 10_000);
+  if (baselineCommit.code !== 0) throw new Error("behavioral-runner-baseline-commit-failed");
+
+  if (options.mode === "guided") {
+    const skillSource = resolve(process.cwd(), ".opencode", "skills", "open-discipline-workflow");
+    const skillTarget = join(workspace, ".opencode", "skills", "open-discipline-workflow");
+    await mkdir(skillTarget, { recursive: true });
+    await cp(skillSource, skillTarget, { recursive: true });
+    await writeFile(join(workspace, "AGENTS.md"), [
+      "# Evaluation repository",
+      "",
+      "Use the OpenDiscipline workflow skill for non-trivial work.",
+      "Never claim completion without observed validation evidence.",
+    ].join("\n") + "\n", "utf8");
+  }
 
   const prompt = [
     options.scenario.objective,
@@ -133,6 +154,7 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
       try { return JSON.parse(line); } catch { return { type: "invalid-json", raw: line }; }
     });
 
+  await mkdir(outputRoot, { recursive: true });
   await cp(sourceFixture, join(outputRoot, "fixture-baseline"), { recursive: true });
   await writeFile(join(outputRoot, "events.ndjson"), execution.stdout, "utf8");
   await writeFile(join(outputRoot, "stderr.log"), execution.stderr, "utf8");
@@ -146,6 +168,17 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
 
   const changedFiles = await listChangedFiles(workspace);
   const commands = collectToolCommands(events);
+  const commandPatterns = options.scenario.checks?.requiredCommands ?? [];
+  for (const pattern of commandPatterns) {
+    const observed = commands.some((commandLine) => commandLine.includes(pattern));
+    evidence.push({
+      id: "command:" + pattern,
+      observed,
+      detail: observed ? "Required command pattern observed." : "Required command pattern was not observed.",
+      source: "executor",
+    });
+    if (!observed) failures.push("missing-command:" + pattern);
+  }
   const evidence: BehavioralEvidence[] = [];
   const failures: string[] = [];
 
@@ -184,10 +217,20 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
     if (matches.length > 0) failures.push("forbidden-commands");
   }
 
-  const outcome = execution.code === 0 && failures.length === 0
-    ? "completed"
-    : execution.code !== 0
-      ? "failed"
+  const requiredEvidence = options.scenario.evidence.filter((item) => item.required);
+  const evidenceByID = new Map(evidence.map((item) => [item.id, item]));
+  const missingEvidence = requiredEvidence.filter((item) => {
+    const itemEvidence = evidenceByID.get(item.id);
+    return !itemEvidence?.observed;
+  });
+  if (missingEvidence.length > 0) {
+    failures.push(...missingEvidence.map((item) => "missing-evidence:" + item.id));
+  }
+
+  const outcome = execution.code !== 0
+    ? "failed"
+    : failures.length === 0 && missingEvidence.length === 0
+      ? "completed"
       : "unknown";
 
   return {
