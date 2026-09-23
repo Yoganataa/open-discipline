@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { validateScenario, validateEvaluationResult, requiredEvidencePassed, type Scenario, type EvaluationResult } from "../evals/contract.ts";
 
 const root = process.cwd();
@@ -11,6 +12,8 @@ const scenarioFiles = [
   "scope-drift.json",
   "false-completion.json",
   "memory-recovery.json",
+  "bounded-refactor.json",
+  "trivial-doc.json",
 ];
 
 test("all committed evaluation scenarios satisfy the contract", async () => {
@@ -60,4 +63,17 @@ test("evaluation result contract rejects omitted evidence arrays", () => {
     }),
     ["evidence"],
   );
+});
+
+
+test("evaluation fixtures referenced by scenarios contain deterministic execution surfaces", async () => {
+  const scenarios = scenarioFiles.map(file => JSON.parse(readFileSync(join(scenarioDir, file), "utf8")) as Scenario);
+  for (const scenario of scenarios) {
+    const fixture = join(root, "evals", scenario.fixture);
+    const packagePath = join(fixture, "package.json");
+    const readmePath = join(fixture, "README.md");
+    const hasPackage = await readFile(packagePath, "utf8").then(() => true).catch(() => false);
+    const hasReadme = await readFile(readmePath, "utf8").then(() => true).catch(() => false);
+    assert.equal(hasPackage || hasReadme, true, scenario.id);
+  }
 });
