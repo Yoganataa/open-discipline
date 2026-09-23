@@ -38,7 +38,14 @@ if (!existsSync(resolve(scopeRoot, ".git"))) {
   const tempClone = join(tmpdir(), "open-discipline-" + process.pid);
   rmSync(tempClone, { recursive: true, force: true });
   try {
-    run("git", ["clone", "--depth", "1", "--branch", ref, "https://github.com/" + REPO + ".git", tempClone]);
+    const sourceUrl = "https://github.com/" + REPO + ".git";
+    if (/^[0-9a-f]{40}$/i.test(ref)) {
+      run("git", ["clone", "--depth", "1", sourceUrl, tempClone]);
+      run("git", ["-C", tempClone, "fetch", "--depth", "1", "origin", ref]);
+      run("git", ["-C", tempClone, "checkout", "--detach", "FETCH_HEAD"]);
+    } else {
+      run("git", ["clone", "--depth", "1", "--branch", ref, sourceUrl, tempClone]);
+    }
     const commit = runQuiet("git", ["-C", tempClone, "rev-parse", "HEAD"]);
     cpSync(tempClone, scopeRoot, { recursive: true });
     writeFileSync(join(scopeRoot, "INSTALL-COMMIT"), commit + "\n", "utf8");
