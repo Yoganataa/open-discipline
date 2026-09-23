@@ -281,3 +281,10 @@ This is an explicit boundary, not an attempt to infer the project's architecture
 The dependency rule compares imports in changed files with locally detected manifests such as `package.json`, Python requirement files, `go.mod`, `Cargo.toml`, and `pubspec.yaml`. It is a warning by default because import-to-package mappings and monorepo/workspace layouts can be ambiguous.
 
 It does not install packages, query a registry, or send source code to a service. It does not claim that an undeclared import is definitely nonexistent; it says the repository's dependency declaration does not currently prove that the dependency is declared.
+
+## Documentation
+
+- [Installation](docs/INSTALLATION.md) — GitHub-only Bun installer, AGENTS.md ownership, backups, and rollback boundaries.
+- [Roadmap](ROADMAP.md) — implementation order and acceptance criteria.
+- [Research](RESEARCH.md) — source-backed design evidence.
+- [Compatibility](COMPATIBILITY.md) — OpenCode V1 host evidence.
