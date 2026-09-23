@@ -1,0 +1,8 @@
+{
+  "name": "fixture-scope-drift",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
