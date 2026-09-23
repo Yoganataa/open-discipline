@@ -23,7 +23,7 @@ export const AGENTS_SECTION = [
 ].join("\\n");
 
 export function getOpenCodeConfigDir(
-  env: NodeJS.ProcessEnv = process.env,
+  env = process.env,
   platform = process.platform,
 ): string {
   if (env.OPENCODE_CONFIG_DIR) return resolve(env.OPENCODE_CONFIG_DIR);
