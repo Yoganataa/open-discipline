@@ -233,6 +233,19 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
     if (matches.length > 0) failures.push("forbidden-commands");
   }
 
+  const requiredArtifacts = options.scenario.checks?.requiredArtifacts ?? [];
+  for (const artifact of requiredArtifacts) {
+    const present = existsSync(join(workspace, artifact));
+    const artifactEvidence = options.scenario.evidence.find((item) => item.required && item.kind === "artifact" && item.id === artifact);
+    evidence.push({
+      id: artifactEvidence?.id ?? "artifact:" + artifact,
+      observed: present,
+      detail: present ? "Required workflow artifact exists." : "Required workflow artifact is missing.",
+      source: "repository",
+    });
+    if (!present) failures.push("missing-artifact:" + artifact);
+  }
+
   const requiredEvidence = options.scenario.evidence.filter((item) => item.required);
   const evidenceByID = new Map(evidence.map((item) => [item.id, item]));
   const missingEvidence = requiredEvidence.filter((item) => {
