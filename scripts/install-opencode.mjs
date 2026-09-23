@@ -106,7 +106,14 @@ function install() {
     atomicWrite(plugin, [
       "/* open-discipline:managed */",
       "/* source: " + REPOSITORY + "@" + requestedRef + " */",
-      'export { default } from "../open-discipline/src/index.ts";',
+      'import OpenDiscipline from "../open-discipline/src/index.ts";',
+      'const KEY = Symbol.for("open-discipline.plugin.loaded");',
+      'export default async function OpenDisciplineLoader(context) {',
+      '  const registry = globalThis;',
+      '  if (registry[KEY]) return {};',
+      '  registry[KEY] = true;',
+      '  return OpenDiscipline(context);',
+      '}',
       "",
     ].join("\n"));
 
