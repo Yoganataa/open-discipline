@@ -32,6 +32,34 @@ const agentsPath = resolve(getAgentsPath(scope));
 const backupDir = join(scopeRoot, "backups", new Date().toISOString().replaceAll(":", "-"));
 mkdirSync(scopeRoot, { recursive: true });
 
+function preflight() {
+  if (existsSync(pluginPath)) {
+    const existing = readFileSync(pluginPath, "utf8");
+    if (!managedMarkerPresent(existing)) throw new Error("Refusing to overwrite unmanaged plugin file: " + pluginPath);
+  }
+  if (keepAgents && existsSync(agentsPath)) {
+    const existing = readFileSync(agentsPath, "utf8");
+    const start = existing.indexOf("<!-- open-discipline:start -->");
+    const end = existing.indexOf("<!-- open-discipline:end -->");
+    if ((start === -1) !== (end === -1) || (start !== -1 && end < start)) {
+      throw new Error("Refusing to modify malformed AGENTS.md OpenDiscipline markers: " + agentsPath);
+    }
+    if (start !== -1) {
+      const currentSection = existing.slice(start, end + "<!-- open-discipline:end -->".length);
+      if (currentSection !== AGENTS_SECTION) {
+        const manifestPath = join(scopeRoot, "install-manifest.json");
+        const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
+        const recorded = manifest?.managedFiles?.find((entry) => entry.path === agentsPath)?.sectionSha256;
+        if (!recorded || hashText(currentSection) !== recorded) {
+          throw new Error("Refusing to overwrite a user-edited OpenDiscipline AGENTS.md section: " + agentsPath);
+        }
+      }
+    }
+  }
+}
+
+preflight();
+
 if (!existsSync(resolve(scopeRoot, ".git"))) {
   const parent = resolve(scopeRoot, "..");
   mkdirSync(parent, { recursive: true });
@@ -54,7 +82,7 @@ if (!existsSync(resolve(scopeRoot, ".git"))) {
   const origin = runQuiet("git", ["-C", scopeRoot, "remote", "get-url", "origin"]);
   if (!origin.includes(REPO)) throw new Error("Refusing to reuse managed root with an unexpected git origin: " + origin);
   run("git", ["-C", scopeRoot, "fetch", "--depth", "1", "origin", ref]);
-  run("git", ["-C", scopeRoot, "checkout", "--detach", "origin/" + ref]);
+  if (/^[0-9a-f]{40}$/i.test(ref)) run("git", ["-C", scopeRoot, "checkout", "--detach", "FETCH_HEAD"]);\n  else run("git", ["-C", scopeRoot, "checkout", "--detach", "origin/" + ref]);
   writeFileSync(join(scopeRoot, "INSTALL-COMMIT"), runQuiet("git", ["-C", scopeRoot, "rev-parse", "HEAD"]) + "\n", "utf8");
 }
 
