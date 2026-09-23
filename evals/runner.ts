@@ -161,8 +161,11 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
   const commandPatterns = options.scenario.checks?.requiredCommands ?? [];
   for (const pattern of commandPatterns) {
     const observed = commands.some((commandLine) => commandLine.includes(pattern));
+    const requiredCommandEvidence = options.scenario.evidence.find((item) =>
+      item.required && item.kind === "command" && item.id === "validation"
+    );
     evidence.push({
-      id: "command:" + pattern,
+      id: requiredCommandEvidence?.id ?? "command:" + pattern,
       observed,
       detail: observed ? "Required command pattern observed." : "Required command pattern was not observed.",
       source: "executor",
