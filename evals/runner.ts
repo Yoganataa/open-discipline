@@ -145,6 +145,19 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
 
   const changedFiles = await listChangedFiles(workspace);
   const commands = stream.toolCalls\n    .filter((call) => call.tool === "bash")\n    .map((call) => typeof call.input.command === "string" ? call.input.command : "");
+  if (options.scenario.verifier) {
+    const verifierPath = resolve(process.cwd(), options.scenario.verifier);
+    const verifier = await runCommand(process.execPath, [verifierPath, workspace], process.cwd(), timeoutMs);
+    const observed = verifier.code === 0;
+    evidence.push({
+      id: "verifier",
+      observed,
+      detail: verifier.stdout.trim() || verifier.stderr.trim() || "Verifier produced no output.",
+      source: "repository",
+    });
+    if (!observed) failures.push("verifier-failed");
+  }
+
   const commandPatterns = options.scenario.checks?.requiredCommands ?? [];
   for (const pattern of commandPatterns) {
     const observed = commands.some((commandLine) => commandLine.includes(pattern));
