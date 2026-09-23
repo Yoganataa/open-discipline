@@ -23,9 +23,39 @@
     "Removing tests to simplify the refactor."
   ],
   "evidence": [
-    { "id": "scope", "description": "Changed files remain within the justified refactor scope.", "kind": "repository", "required": true },
-    { "id": "behavior", "description": "Existing order behavior remains covered and passing.", "kind": "command", "required": true },
-    { "id": "completion", "description": "Completion is supported by observed validation.", "kind": "behavior", "required": true }
+    {
+      "id": "scope",
+      "description": "Changed files remain within the justified refactor scope.",
+      "kind": "repository",
+      "required": true
+    },
+    {
+      "id": "behavior",
+      "description": "Existing order behavior remains covered and passing.",
+      "kind": "command",
+      "required": true
+    },
+    {
+      "id": "completion",
+      "description": "Completion is supported by observed validation.",
+      "kind": "behavior",
+      "required": true
+    }
   ],
-  "modes": ["baseline", "guided"]
+  "modes": [
+    "baseline",
+    "guided"
+  ],
+  "checks": {
+    "requiredChangedPaths": [
+      "src/order.js"
+    ],
+    "requiredCommands": [
+      "npm test"
+    ],
+    "requiredFiles": [
+      "src/order.js",
+      "test/order.test.js"
+    ]
+  }
 }
