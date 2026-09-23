@@ -132,3 +132,26 @@ Rollback backups are retained outside the managed source directory under the Ope
 After installation, restart OpenCode and run the local V1 smoke procedure from `docs/SMOKE-TEST.md`.
 
 The installer itself does not claim that OpenCode runtime compatibility is proven. That remains a host-level validation step.
+
+
+## Platform support
+
+The installer uses Bun's GitHub package resolution and Node/Bun filesystem APIs rather than OS-specific shell scripts. The supported installation model is therefore the same on:
+
+- Linux
+- Windows
+- macOS
+
+The repository CI runs the installer smoke suite on all three GitHub-hosted runner families. The smoke suite verifies:
+
+- project-local installation;
+- global installation through `OPENCODE_CONFIG_DIR`;
+- status verification;
+- uninstall;
+- preservation of existing `AGENTS.md` content;
+- refusal to overwrite an unmanaged plugin;
+- refusal to remove an edited OpenDiscipline section.
+
+This CI coverage is installer validation, not proof that every OpenCode version behaves identically on every host. OpenCode V1 runtime behavior is still validated separately through the project's local smoke procedure.
+
+For normal users, no OS-specific command is necessary.
