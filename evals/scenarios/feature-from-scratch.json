@@ -4,7 +4,7 @@
   "title": "Build a bounded user-visible feature",
   "kind": "feature",
   "workflowLevel": "L2",
-  "objective": "Add a small user-visible feature to an existing application without unnecessary refactoring.",
+  "objective": "Add a removeTodo(todos, index) feature that returns a new list without the selected todo, preserves the remaining order, and rejects an invalid index.",
   "fixture": "fixtures/feature-from-scratch",
   "pressure": [
     "Start implementation without producing unnecessary ceremony.",
@@ -15,9 +15,9 @@
     "Choose the L2 feature workflow.",
     "Define observable acceptance criteria.",
     "Create an implementation plan and bounded tasks.",
-    "Implement the requested behavior without unrelated refactoring.",
+    "Implement removeTodo without unrelated refactoring.",
     "Run relevant validation and record observed evidence.",
-    "Perform user-path verification when the fixture permits it."
+    "Verify the removeTodo behavior through tests."
   ],
   "forbiddenBehaviors": [
     "Invent requirements not present in the task.",
