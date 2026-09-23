@@ -8,6 +8,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "bin": {
+    "open-discipline-install": "./scripts/install-opencode.mjs"
+  },
   "scripts": {
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
