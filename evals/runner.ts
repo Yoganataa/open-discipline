@@ -170,6 +170,29 @@ export async function runBehavioralEvaluation(options: BehavioralRunOptions): Pr
     if (unexpected.length > 0) failures.push("scope:" + unexpected.join(","));
   }
 
+
+  if (options.scenario.checks?.requiredFiles) {
+    const missing = options.scenario.checks.requiredFiles.filter((path) => !existsSync(join(workspace, path)));
+    evidence.push({
+      id: "required-files",
+      observed: missing.length === 0,
+      detail: missing.length === 0 ? "All required files exist." : "Missing files: " + missing.join(", "),
+      source: "repository",
+    });
+    if (missing.length > 0) failures.push("missing-files:" + missing.join(","));
+  }
+
+  if (options.scenario.checks?.requiredChangedPaths) {
+    const missing = options.scenario.checks.requiredChangedPaths.filter((path) => !changedFiles.includes(path));
+    evidence.push({
+      id: "required-changed-paths",
+      observed: missing.length === 0,
+      detail: missing.length === 0 ? "All required paths changed." : "Unchanged required paths: " + missing.join(", "),
+      source: "repository",
+    });
+    if (missing.length > 0) failures.push("missing-changes:" + missing.join(","));
+  }
+
   if (options.scenario.checks?.forbiddenChangedPaths) {
     const forbidden = changedFiles.filter((path) => matchesPath(path, options.scenario.checks!.forbiddenChangedPaths!));
     evidence.push({
