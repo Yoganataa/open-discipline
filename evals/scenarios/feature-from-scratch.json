@@ -26,11 +26,55 @@
     "Claim validation passed without observed output."
   ],
   "evidence": [
-    { "id": "workflow-level", "description": "L2 workflow was selected for the feature.", "kind": "artifact", "required": true },
-    { "id": "acceptance", "description": "Observable acceptance criteria exist.", "kind": "artifact", "required": true },
-    { "id": "validation", "description": "Relevant validation result was actually observed.", "kind": "command", "required": true },
-    { "id": "scope", "description": "No unrelated scope expansion is observed.", "kind": "repository", "required": true },
-    { "id": "user-path", "description": "The relevant user path was exercised when supported by the fixture.", "kind": "user-path", "required": false }
+    {
+      "id": "workflow-level",
+      "description": "L2 workflow was selected for the feature.",
+      "kind": "artifact",
+      "required": true
+    },
+    {
+      "id": "acceptance",
+      "description": "Observable acceptance criteria exist.",
+      "kind": "artifact",
+      "required": true
+    },
+    {
+      "id": "validation",
+      "description": "Relevant validation result was actually observed.",
+      "kind": "command",
+      "required": true
+    },
+    {
+      "id": "scope",
+      "description": "No unrelated scope expansion is observed.",
+      "kind": "repository",
+      "required": true
+    },
+    {
+      "id": "user-path",
+      "description": "The relevant user path was exercised when supported by the fixture.",
+      "kind": "user-path",
+      "required": false
+    }
   ],
-  "modes": ["baseline", "guided"]
+  "modes": [
+    "baseline",
+    "guided"
+  ],
+  "checks": {
+    "requiredChangedPaths": [
+      "src/todos.js",
+      "test/todos.test.js"
+    ],
+    "requiredCommands": [
+      "npm test"
+    ],
+    "forbiddenChangedPaths": [
+      "package-lock.json"
+    ],
+    "requiredFiles": [
+      "src/todos.js",
+      "test/todos.test.js"
+    ]
+  }
 }
