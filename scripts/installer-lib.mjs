@@ -25,7 +25,7 @@ export const AGENTS_SECTION = [
 export function getOpenCodeConfigDir(
   env = process.env,
   platform = process.platform,
-): string {
+) {
   if (env.OPENCODE_CONFIG_DIR) return resolve(env.OPENCODE_CONFIG_DIR);
   if (platform !== "win32" && env.XDG_CONFIG_HOME) {
     return resolve(env.XDG_CONFIG_HOME, "opencode");
@@ -133,11 +133,11 @@ export function buildPluginLoader(_scope) {
   ].join("\\n");
 }
 
-export function managedMarkerPresent(value: string): boolean {
+export function managedMarkerPresent(value) {
   return value.includes("open-discipline:managed");
 }
 
-export function getRelativeInstallSource(scriptFile: string): string {
+export function getRelativeInstallSource(scriptFile) {
   return resolve(dirname(scriptFile), "..");
 }
 
