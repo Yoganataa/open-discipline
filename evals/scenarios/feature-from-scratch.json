@@ -55,6 +55,12 @@
       "description": "The relevant user path was exercised when supported by the fixture.",
       "kind": "user-path",
       "required": false
+    },
+    {
+      "id": "verifier",
+      "description": "Independent verifier confirms the requested feature behavior against the modified source.",
+      "kind": "behavior",
+      "required": true
     }
   ],
   "modes": [
