@@ -195,3 +195,53 @@ The OpenCode V1 host-source review adds an important distinction to the research
 For V1 1.18.14, 1.18.30, and 1.18.31, the upstream host source was checked for the `tool.execute.before` boundary and for the TaskTool/subtask path invoking that boundary. OpenDiscipline records these as host-source evidence, not runtime-smoke proof.
 
 The project therefore does not convert the source inspection into a claim that every platform and binary build behaves identically. Actual binary smoke tests remain a separate roadmap item.
+
+
+## GitHub-only installation and instruction ownership
+
+### OpenCode local plugin discovery
+
+OpenCode's V1 documentation states that local TypeScript/JavaScript plugins are automatically loaded from the project `.opencode/plugins/` directory and the global `~/.config/opencode/plugins/` directory. It also documents a separate global `~/.config/opencode/AGENTS.md` and project `AGENTS.md` instruction surface.
+
+Design consequence:
+- install the plugin through a generated loader in the documented plugin directory;
+- keep the implementation in a dedicated OpenDiscipline-owned directory;
+- do not modify `opencode.json` merely to load a local plugin;
+- treat `AGENTS.md` as an existing instruction surface rather than an installation file to replace.
+
+### Bun / GitHub-only distribution
+
+Bun's current `bunx` documentation supports package execution and the `--package` flag for selecting a binary. Bun also supports GitHub package references through its package tooling.
+
+Design consequence:
+- expose a single installer binary through `package.json`;
+- invoke it with `bunx --package github:Yoganataa/open-discipline#<ref> open-discipline-install`;
+- permit an immutable 40-character Git commit as an installer ref;
+- do not require npm publication.
+
+### AGENTS.md ownership boundary
+
+The installer must be marker-scoped and idempotent:
+
+    <!-- open-discipline:start -->
+    ...
+    <!-- open-discipline:end -->
+
+Existing content outside the markers must not be rewritten. If the managed section has been edited by the user, update/uninstall operations must refuse to overwrite it silently.
+
+This boundary is specifically intended to coexist with repository-installed MCP guidance such as codebase-memory-mcp and Context7.
+
+### Installation safety model
+
+The installer owns only:
+- the dedicated OpenDiscipline source checkout;
+- the generated plugin loader;
+- the generated OpenDiscipline workflow skill;
+- the marked OpenDiscipline section in `AGENTS.md`;
+- its own install manifest and backups.
+
+It must refuse to overwrite an unmanaged plugin file and must record enough metadata to identify the installed Git source and managed files.
+
+### Evidence boundary
+
+Installation success is not OpenCode runtime compatibility proof. Runtime behavior remains a separate local OpenCode V1 smoke test, consistent with the project's host-independent PR CI policy.
