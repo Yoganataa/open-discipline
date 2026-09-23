@@ -67,3 +67,28 @@ The evaluator distinguishes:
 - explicit failure evidence.
 
 An omitted field is never interpreted as success.
+
+## Behavioral runner
+
+The behavioral runner is intentionally manual/on-demand and is not a blocking PR check. It runs an actual user-installed OpenCode binary against an isolated temporary copy of a fixture, initializes a disposable Git repository for changed-file evidence, and stores raw JSONL output plus normalized results.
+
+Run a guided evaluation:
+
+    npm run eval:behavior -- --scenario feature-from-scratch --mode guided
+
+Run the same scenario as a baseline:
+
+    npm run eval:behavior -- --scenario feature-from-scratch --mode baseline
+
+Optional flags:
+
+    --model <provider/model>
+    --opencode <path-or-command>
+    --timeout-ms <milliseconds>
+    --output <directory>
+
+The runner treats missing evidence as `unknown`, not pass. It also preserves raw event output because OpenCode's JSON stream has had documented cases of dropping `text` or final `step_finish` events before process exit. The JSON stream is therefore evidence, not an authoritative transcript.
+
+Known OpenCode V1 JSON-stream limitations are tracked separately from OpenDiscipline behavior. Do not infer successful completion solely from process exit code or a truncated event stream.
+
+Guided mode currently injects only the OpenDiscipline workflow skill and a minimal repository instruction. It does not install the full plugin. This isolates workflow behavior from runtime guardrail behavior; plugin smoke tests remain the separate host-compatibility evidence path.
