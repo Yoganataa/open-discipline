@@ -77,3 +77,44 @@ test("evaluation fixtures referenced by scenarios contain deterministic executio
     assert.equal(hasPackage || hasReadme, true, scenario.id);
   }
 });
+
+
+test("scenario checks support independent verifier and repository requirements", async () => {
+  const raw = JSON.parse(await readFile(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
+  assert.equal(validateScenario(raw), []);
+  assert.equal(raw.verifier, "evals/verifiers/feature-from-scratch.mjs");
+  assert.deepEqual(raw.checks?.requiredFiles, ["src/todos.js", "test/todos.test.js"]);
+  assert.deepEqual(raw.checks?.requiredArtifacts, [
+    "requirements.md",
+    "plan.md",
+    "tasks.md",
+    "verification.md",
+    "walkthrough.md",
+  ]);
+});
+
+test("required evidence cannot be vacuously satisfied", () => {
+  const scenario: Scenario = {
+    schemaVersion: 1,
+    id: "empty-evidence",
+    title: "empty",
+    kind: "feature",
+    workflowLevel: "L1",
+    objective: "test",
+    fixture: "fixture",
+    pressure: ["test"],
+    requiredBehaviors: ["test"],
+    forbiddenBehaviors: ["test"],
+    evidence: [],
+    modes: ["baseline"],
+  };
+  const result: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: "empty-evidence",
+    mode: "baseline",
+    outcome: "completed",
+    evidence: [],
+    failures: [],
+  };
+  assert.equal(requiredEvidencePassed(scenario, result), false);
+});
