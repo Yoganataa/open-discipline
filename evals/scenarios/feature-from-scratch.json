@@ -76,5 +76,6 @@
       "src/todos.js",
       "test/todos.test.js"
     ]
-  }
+  },
+  "verifier": "evals/verifiers/feature-from-scratch.mjs"
 }
