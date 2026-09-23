@@ -334,7 +334,7 @@ Passing one does not imply passing the other.
 - [x] requirements -> task traceability;
 - [x] task state tied to observed implementation evidence;
 - [x] verification evidence bound to task completion;
-- [ ] representative feature/bugfix/refactor/trivial fixtures;
+- [x] representative feature/bugfix/refactor/trivial fixtures;
 - [x] machine-readable workflow state.
 
 Acceptance:
