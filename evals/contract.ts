@@ -33,6 +33,7 @@ export interface ScenarioChecks {
   allowedChangedPaths?: string[];
   forbiddenChangedPaths?: string[];
   requiredArtifacts?: string[];
+  requiredFiles?: string[];
   requiredCommands?: string[];
   forbiddenCommands?: string[];
 }
@@ -138,6 +139,8 @@ export function requiredEvidencePassed(scenario: Scenario, result: EvaluationRes
   if (result.scenarioID !== scenario.id) return false;
   if (result.outcome !== "completed") return false;
 
+  const required = scenario.evidence.filter(item => item.required);
+  if (required.length === 0) return false;
   const observed = new Set(result.evidence.filter(item => item.observed).map(item => item.id));
-  return scenario.evidence.filter(item => item.required).every(item => observed.has(item.id));
+  return required.every(item => observed.has(item.id));
 }
