@@ -9,6 +9,7 @@ export interface EvidenceRequirement {
   description: string;
   kind: "artifact" | "behavior" | "command" | "repository" | "user-path";
   required: boolean;
+  paths?: string[];
 }
 
 export interface Scenario {
@@ -94,6 +95,14 @@ export function validateScenario(value: unknown): string[] {
       if (typeof entry.description !== "string" || !entry.description) errors.push("evidence:description");
       if (!["artifact", "behavior", "command", "repository", "user-path"].includes(String(entry.kind))) errors.push("evidence:kind:" + String(entry.kind));
       if (typeof entry.required !== "boolean") errors.push("evidence:required");
+      if (entry.paths !== undefined) {
+        if (!Array.isArray(entry.paths) || entry.paths.length === 0 || entry.paths.some(path => typeof path !== "string" || !path)) {
+          errors.push("evidence:paths");
+        }
+      }
+      if (entry.kind === "artifact" && entry.paths !== undefined && !Array.isArray(entry.paths)) {
+        errors.push("evidence:paths");
+      }
     }
   }
 
@@ -138,9 +147,11 @@ function rawScenarioID(result: EvaluationResult): string {
 export function requiredEvidencePassed(scenario: Scenario, result: EvaluationResult): boolean {
   if (result.scenarioID !== scenario.id) return false;
   if (result.outcome !== "completed") return false;
+  if (validateEvaluationResult(result).length > 0) return false;
 
   const required = scenario.evidence.filter(item => item.required);
   if (required.length === 0) return false;
+
   const observed = new Set(result.evidence.filter(item => item.observed).map(item => item.id));
   return required.every(item => observed.has(item.id));
 }
