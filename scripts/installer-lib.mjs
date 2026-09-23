@@ -59,9 +59,13 @@ export function removeAgentsSection(original, expectedSection) {
   const endExclusive = end + AGENTS_END.length;
   const currentSection = original.slice(start, endExclusive);
   if (expectedSection && currentSection !== expectedSection) throw new Error("The OpenDiscipline AGENTS.md section was changed after installation. Refusing to overwrite user edits; inspect the section manually or use an explicit repair.");
-  const before = original.slice(0, start).replace(/[ \t]+$/gm, "");
-  const after = original.slice(endExclusive).replace(/^[ \t]+/gm, "");
-  const separator = before && after ? (original.includes("\r\n") ? "\r\n\r\n" : "\n\n") : "";
+  const newline = original.includes("\r\n") ? "\r\n" : "\n";
+  let before = original.slice(0, start);
+  const after = original.slice(endExclusive);
+  if (!after && before.endsWith(newline + newline)) before = before.slice(0, -2 * newline.length);
+  const separator = before && after && !before.endsWith(newline) && !after.startsWith(newline)
+    ? newline + newline
+    : "";
   const content = before + separator + after;
   return { content, changed: content !== original, remainingOnlyWhitespace: content.trim().length === 0 };
 }
