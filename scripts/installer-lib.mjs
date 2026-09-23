@@ -33,31 +33,29 @@ export function getOpenCodeConfigDir(
   return resolve(env.HOME ?? env.USERPROFILE ?? homedir(), ".config", "opencode");
 }
 
-export function getScopeRoot(scope: "global" | "project", cwd = process.cwd()): string {
+export function getScopeRoot(scope, cwd = process.cwd()) {
   return scope === "global" ? getOpenCodeConfigDir() : resolve(cwd, ".opencode");
 }
 
-export function getManagedRoot(scope: "global" | "project", cwd = process.cwd()): string {
+export function getManagedRoot(scope, cwd = process.cwd()) {
   return join(getScopeRoot(scope, cwd), "open-discipline");
 }
 
-export function getPluginPath(scope: "global" | "project", cwd = process.cwd()): string {
+export function getPluginPath(scope, cwd = process.cwd()) {
   return join(getScopeRoot(scope, cwd), "plugins", "open-discipline.ts");
 }
 
-export function getSkillPath(scope: "global" | "project", cwd = process.cwd()): string {
+export function getSkillPath(scope, cwd = process.cwd()) {
   return join(getScopeRoot(scope, cwd), "skills", "open-discipline-workflow", "SKILL.md");
 }
 
-export function getAgentsPath(scope: "global" | "project", cwd = process.cwd()): string {
+export function getAgentsPath(scope, cwd = process.cwd()) {
   return scope === "global"
     ? join(getScopeRoot(scope, cwd), "AGENTS.md")
     : resolve(cwd, "AGENTS.md");
 }
 
-export function mergeAgentsSection(
-  original: string,
-): { content: string; changed: boolean; previousSection?: string } {
+export function mergeAgentsSection(original) {
   const start = original.indexOf(AGENTS_START);
   const end = original.indexOf(AGENTS_END);
 
@@ -91,11 +89,7 @@ export function mergeAgentsSection(
   };
 }
 
-export function removeAgentsSection(original: string, expectedSection?: string): {
-  content: string;
-  changed: boolean;
-  remainingOnlyWhitespace: boolean;
-} {
+export function removeAgentsSection(original, expectedSection) {
   const start = original.indexOf(AGENTS_START);
   const end = original.indexOf(AGENTS_END);
 
@@ -126,11 +120,11 @@ export function removeAgentsSection(original: string, expectedSection?: string):
   };
 }
 
-export function hashText(value: string): string {
+export function hashText(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
-export function buildPluginLoader(_scope: "global" | "project"): string {
+export function buildPluginLoader(_scope) {
   return [
     "/* open-discipline:managed */",
     "/* Do not edit manually; managed by the OpenDiscipline GitHub installer. */",
