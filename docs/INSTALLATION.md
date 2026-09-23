@@ -16,7 +16,7 @@ For a reproducible install, pin an immutable commit:
 bunx --package github:Yoganataa/open-discipline#<40-char-commit-sha> open-discipline-install --ref=<40-char-commit-sha>
 ```
 
-The installer clones that GitHub ref into a dedicated OpenDiscipline directory and creates the OpenCode plugin loader. OpenCode then discovers the loader through its documented global `~/.config/opencode/plugins/` or project `.opencode/plugins/` directory. citeturn2search0
+The installer clones that GitHub ref into a dedicated OpenDiscipline directory and creates the OpenCode plugin loader. OpenCode then discovers the loader through its documented global `~/.config/opencode/plugins/` or project `.opencode/plugins/` directory.
 
 ## Default scope
 
@@ -27,7 +27,7 @@ Without `--local`, installation is global:
 - workflow skill: `~/.config/opencode/skills/open-discipline-workflow/SKILL.md`
 - global instructions: `~/.config/opencode/AGENTS.md`
 
-OpenCode officially supports a global `~/.config/opencode/AGENTS.md`, and project `AGENTS.md` files remain separate. citeturn1search1
+OpenCode officially supports a global `~/.config/opencode/AGENTS.md`, and project `AGENTS.md` files remain separate.
 
 For a project-local installation:
 
@@ -50,7 +50,7 @@ It adds only:
 <!-- open-discipline:end -->
 ```
 
-Existing instruction sections are preserved byte-for-byte outside that marker. This is deliberate because OpenCode combines global and project instruction files, and an existing `AGENTS.md` is part of the user's instruction surface. citeturn1search1
+Existing instruction sections are preserved byte-for-byte outside that marker. This is deliberate because OpenCode combines global and project instruction files, and an existing `AGENTS.md` is part of the user's instruction surface.
 
 In particular, existing MCP sections such as `codebase-memory-mcp` and `context7` are not rewritten, reordered, or removed.
 
@@ -75,7 +75,7 @@ It records an ownership manifest under the dedicated OpenDiscipline directory.
 
 Do not install OpenDiscipline both globally and locally unless you deliberately need the local copy.
 
-OpenCode loads both global and project plugin directories. OpenDiscipline therefore includes a process-level duplicate-load guard so the same plugin implementation does not register its hooks twice when both loaders point to it. citeturn2search0
+OpenCode loads both global and project plugin directories. OpenDiscipline therefore includes a process-level duplicate-load guard so the same plugin implementation does not register its hooks twice when both loaders point to it.
 
 ## Update and rollback
 
