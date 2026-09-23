@@ -24,12 +24,7 @@ const SHELL_TOOLS=new Set(["bash","sh","zsh","fish","powershell","pwsh","cmd","s
 const CORE_INTEGRITY_PATHS=["discipline.config.json","src/index.ts","src/config.ts","src/core/**","src/rules/**","src/scanners/**",".opencode/plugins/open-discipline.ts",".opencode/plugins/**",".git/**"];
 function isCoreIntegrityPath(path:string){return matchesPath(path,CORE_INTEGRITY_PATHS);}
 
-const OPEN_DISCIPLINE_LOADED = Symbol.for("open-discipline.plugin.loaded");
-const pluginRegistry = globalThis as typeof globalThis & { [OPEN_DISCIPLINE_LOADED]?: boolean };
-
 export const OpenDiscipline:Plugin=async({directory,client})=>{
- if(pluginRegistry[OPEN_DISCIPLINE_LOADED]) return {};
- pluginRegistry[OPEN_DISCIPLINE_LOADED]=true;
  const smoke=createSmokeRecorder(directory);
  if(process.env.OPENDISCIPLINE_SMOKE==="1")console.info("[open-discipline] smoke: plugin loaded for "+directory);
  if(smoke.enabled)await smoke.record({type:"plugin.loaded",hook:"plugin",outcome:"observed",detail:"OpenDiscipline plugin initialized."});
