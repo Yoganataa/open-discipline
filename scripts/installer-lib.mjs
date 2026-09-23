@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 
-export const INSTALL_SCHEMA_VERSION = 1 as const;
+export const INSTALL_SCHEMA_VERSION = 1;
 export const AGENTS_START = "<!-- open-discipline:start -->";
 export const AGENTS_END = "<!-- open-discipline:end -->";
 
