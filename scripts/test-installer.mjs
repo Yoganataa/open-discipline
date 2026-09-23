@@ -2,9 +2,10 @@ import { mkdtemp, rm, writeFile, readFile, mkdir } from "node:fs/promises";
 import { tmpdir, platform } from "node:os";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { strict as assert } from "node:assert";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const installer = join(root, "scripts", "install-opencode.mjs");
 const run = (args, cwd, env = {}) => execFileSync(process.execPath, [installer, ...args], {
   cwd,
