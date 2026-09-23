@@ -13,11 +13,6 @@ const run = (args, cwd, env = {}) => execFileSync(process.execPath, [installer, 
   encoding: "utf8",
   stdio: ["ignore", "pipe", "pipe"],
 });
-const expectFailure = (fn) => {
-  try { fn(); assert.fail("expected command to fail"); }
-  catch (error) { assert.notEqual(error?.status, 0 === true ? undefined : 0); }
-};
-
 const temp = await mkdtemp(join(tmpdir(), "open-discipline-installer-"));
 try {
   const project = join(temp, "project");
