@@ -331,16 +331,19 @@ Passing one does not imply passing the other.
 - [x] L0-L3 classification established;
 - [x] native OpenCode workflow skill established;
 - [x] workflow regression tests established;
-- [ ] requirements -> task traceability;
-- [ ] task state tied to observed implementation evidence;
-- [ ] verification evidence bound to task completion;
+- [x] requirements -> task traceability;
+- [x] task state tied to observed implementation evidence;
+- [x] verification evidence bound to task completion;
 - [ ] representative feature/bugfix/refactor/trivial fixtures;
-- [ ] machine-readable workflow state.
+- [x] machine-readable workflow state.
 
 Acceptance:
 - workflow does not create unnecessary ceremony;
 - a completed task has observable implementation + verification evidence;
-- workflow instructions cannot justify bypassing enforcement.
+- workflow instructions cannot justify bypassing enforcement;
+- machine-readable state rejects dangling requirement/task/verification references;
+- completion requires observed verification evidence;
+- workflow transitions cannot skip directly from active work to complete.
 
 ---
 
