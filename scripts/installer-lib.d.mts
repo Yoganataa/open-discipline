@@ -1,0 +1,16 @@
+export declare const INSTALL_SCHEMA_VERSION: number;
+export declare const AGENTS_START: string;
+export declare const AGENTS_END: string;
+export declare const AGENTS_SECTION: string;
+export declare function getOpenCodeConfigDir(env?: Record<string, string | undefined>, platform?: string): string;
+export declare function getScopeRoot(scope: "global" | "project", cwd?: string): string;
+export declare function getManagedRoot(scope: "global" | "project", cwd?: string): string;
+export declare function getPluginPath(scope: "global" | "project", cwd?: string): string;
+export declare function getSkillPath(scope: "global" | "project", cwd?: string): string;
+export declare function getAgentsPath(scope: "global" | "project", cwd?: string): string;
+export declare function mergeAgentsSection(original: string): { content: string; changed: boolean; previousSection?: string };
+export declare function removeAgentsSection(original: string, expectedSection?: string): { content: string; changed: boolean; remainingOnlyWhitespace: boolean };
+export declare function hashText(value: string): string;
+export declare function managedMarkerPresent(value: string): boolean;
+export declare function managedSectionHash(value: string): string;
+export declare function getRelativeInstallSource(scriptFile: string): string;
