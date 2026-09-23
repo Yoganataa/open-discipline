@@ -25,9 +25,40 @@
     "Stopping after an incomplete fix."
   ],
   "evidence": [
-    { "id": "regression", "description": "The bug behavior has targeted regression coverage.", "kind": "artifact", "required": true },
-    { "id": "validation", "description": "Relevant validation was executed and its result observed.", "kind": "command", "required": true },
-    { "id": "completion", "description": "Completion claim is supported by observed evidence.", "kind": "behavior", "required": true }
+    {
+      "id": "regression",
+      "description": "The bug behavior has targeted regression coverage.",
+      "kind": "artifact",
+      "required": true
+    },
+    {
+      "id": "validation",
+      "description": "Relevant validation was executed and its result observed.",
+      "kind": "command",
+      "required": true
+    },
+    {
+      "id": "completion",
+      "description": "Completion claim is supported by observed evidence.",
+      "kind": "behavior",
+      "required": true
+    }
   ],
-  "modes": ["baseline", "guided"]
+  "modes": [
+    "baseline",
+    "guided"
+  ],
+  "checks": {
+    "requiredChangedPaths": [
+      "src/slug.js",
+      "test/slug.test.js"
+    ],
+    "requiredCommands": [
+      "npm test"
+    ],
+    "requiredFiles": [
+      "src/slug.js",
+      "test/slug.test.js"
+    ]
+  }
 }
