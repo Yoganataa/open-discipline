@@ -8,7 +8,7 @@ test("parses tool calls, text, and step completion events", () => {
     JSON.stringify({ type: "tool_use", part: { tool: "bash", state: { status: "completed", input: { command: "npm test" } } } }),
     JSON.stringify({ type: "text", part: { text: "Done" } }),
     JSON.stringify({ type: "step_finish", part: { reason: "stop" } }),
-  ].join("\\n"));
+  ].join("\n"));
 
   assert.equal(result.invalidLines, 0);
   assert.deepEqual(result.toolCalls, [{ tool: "bash", input: { command: "npm test" } }]);
@@ -29,7 +29,7 @@ test("marks truncated JSON streams as incomplete instead of successful", () => {
 });
 
 test("invalid lines are counted and never become evidence", () => {
-  const result = parseOpenCodeStream("not-json\\n" + JSON.stringify({ type: "step_start" }));
+  const result = parseOpenCodeStream("not-json\n" + JSON.stringify({ type: "step_start" }));
   assert.equal(result.invalidLines, 1);
   assert.equal(result.incompleteSteps, 1);
 });
