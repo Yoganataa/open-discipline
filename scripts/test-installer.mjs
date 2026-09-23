@@ -60,7 +60,12 @@ try {
   assert.match(await readFile(globalPlugin, "utf8"), /open-discipline:managed/);
   run(["status"], project, globalEnv);
   run(["uninstall"], project, globalEnv);
-  let removedPlugin = true;\n  try { await readFile(join(customConfig, "plugins", "open-discipline.ts")); removedPlugin = false; } catch {}\n  assert.equal(removedPlugin, true);
+  let removedPlugin = true;
+  try {
+    await readFile(join(customConfig, "plugins", "open-discipline.ts"));
+    removedPlugin = false;
+  } catch {}
+  assert.equal(removedPlugin, true);
 
   const conflictProject = join(temp, "conflict");
   await mkdir(join(conflictProject, ".opencode", "plugins"), { recursive: true });
