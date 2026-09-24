@@ -2,6 +2,20 @@
 
 OpenDiscipline is a deterministic guardrail for agent-driven development. Keep the implementation small, predictable, and low-noise.
 
+## Session bootstrap
+
+For every new non-trivial session:
+
+1. Use `README.md` as the repository orientation and documentation map.
+2. Read `ROADMAP.md` before choosing implementation work. It is the canonical source of project status and order.
+3. Before designing or changing a guardrail, workflow control, memory behavior, or architecture, read `RESEARCH.md` and verify the relevant external evidence.
+4. For OpenCode V1 runtime/API work, read `COMPATIBILITY.md` and `docs/SMOKE-TEST.md`; do not substitute memory or SDK types for host evidence.
+5. Read only the detailed documents relevant to the current task. Do not bulk-load all Markdown into context.
+6. Work on the smallest justified unfinished roadmap item unless the user explicitly directs another scope.
+7. Before claiming completion, use observed implementation, test, typecheck, runtime, and user-facing evidence as applicable. Update roadmap status only from observed evidence.
+
+Never treat README status, generated memory, agent narration, or a green proxy check as proof when the canonical source or current repository evidence says otherwise.
+
 ## Core principles
 
 - Prefer deterministic checks over model-dependent judgments.
@@ -46,6 +60,7 @@ Use `.opencode/skills/open-discipline-workflow/SKILL.md` and `docs/WORKFLOW.md` 
 - Do not claim completion or passing validation without observed evidence.
 - End-user verification is distinct from unit/integration tests when the change has a user-visible path.
 - Workflow guidance is not a substitute for OpenDiscipline enforcement and must never be used to justify bypassing a BLOCK.
+- Do not create duplicate roadmaps, duplicate authoritative policy documents, or ad-hoc TODO files when an existing project document owns the information.
 
 ## Scope discipline
 
