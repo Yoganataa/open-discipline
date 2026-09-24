@@ -100,7 +100,173 @@ OpenDiscipline response:
 Limit: The paper concerns vulnerability repair, not OpenCode plugins. The relevant lesson is evidence flow: execution feedback should influence the repair loop rather than being ignored.
 
 
-## 6. Workflow structure and evidence packaging
+
+## 6. Additional empirical findings on agentic reliability (2024–2026)
+
+These findings are added to sharpen OpenDiscipline's definition of agent failure. They support controls around state, evidence, mutation, memory, recovery, and proxy objectives. They do not establish that every model exhibits every failure at the same rate.
+
+### 6.1 Agent reliability is a trajectory property, not a single successful action
+
+AgentBench evaluated 29 API-based and open-source LLMs across eight interactive environments and identified poor long-term reasoning, decision-making, and instruction following as recurring obstacles to usable agents.
+
+Source: https://proceedings.iclr.cc/paper_files/paper/2024/hash/e9df36b21ff4ee211a8b71ee8b7e9f57-Abstract-Conference.html
+
+τ-Bench evaluates tool-agent-user interaction by comparing the final environment/database state with the annotated goal state and introduces `pass^k` for repeated-trial reliability. In its release-era evaluation, even GPT-4o succeeded on less than 50% of tasks overall, and retail `pass^8` was below 25%.
+
+Source: https://arxiv.org/abs/2406.12045
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| Local tool success is mistaken for task success | Requirement-level completion evidence |
+| One successful run is treated as reliable behavior | Recovery/trajectory tests and repeated evaluation |
+| Agent loses constraints over multiple steps | Durable task state and validation checkpoints |
+
+Limits:
+- AgentBench and τ-Bench report release-era model/scaffold results. They are evidence of failure modes, not current universal model-performance estimates.
+- `pass^k` measures repeatability, not semantic correctness for every possible task.
+
+### 6.2 Long context does not remove the need for structured memory
+
+LongCodeBench evaluates coding comprehension and repair with context windows up to one million tokens and reports substantial performance degradation for long-context settings, including drops from 29% to 3% for Claude 3.5 Sonnet and from 70.2% to 40% for Qwen2.5 in its reported comparisons.
+
+Source: https://arxiv.org/abs/2505.07897
+
+*Context as a Tool* reports that append-only or passively compressed context can suffer from context explosion and semantic drift. Its proposed context workspace separates stable task semantics, condensed long-term memory, and high-fidelity short-term interaction; the reported SWE-Bench-Verified result for SWE-Compressor is 57.6%.
+
+Source: https://aclanthology.org/2026.findings-acl.1032/
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| Full transcript becomes too large or noisy | Selective retrieval |
+| Relevant facts compete with stale history | Freshness / invalidation |
+| Task identity is lost during compaction | Durable objective + task checkpoint |
+| Memory retrieval returns textually similar but task-irrelevant state | Relevance constrained by current task, files, requirements, blockers, and validation |
+
+Limit: These studies support structured context management; they do not prove one universal memory schema or retrieval algorithm.
+
+### 6.3 Mutating actions deserve disproportionate verification
+
+SABER analyzes trajectories from τ-Bench and SWE-Bench Verified and separates environment-mutating from non-mutating actions. Its logistic-regression analysis reports that each additional deviation in a mutating action reduces the odds of success by up to 92% on Airline and 96% on Retail for the evaluated models, while comparable deviations in non-mutating actions had much smaller effects.
+
+Source: https://arxiv.org/abs/2512.07850
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| A semantically wrong write commits the trajectory to a bad state | Mutation-aware verification |
+| Guardrails interrupt every harmless read | Target controls at consequential mutation boundaries |
+| Stale constraints affect a state-changing action | Re-check salient requirements immediately before mutation |
+
+Limit: The reported effect sizes are benchmark- and model-dependent statistical associations, not a proof that every mutating action is dangerous or that every non-mutating action is safe.
+
+### 6.4 False completion and progress drift are measurable failure modes
+
+*Building to the Test* studies two production coding agents under a controlled code-as-spec task with a hidden 222-test Playwright oracle. The authors report that oracle availability can produce near-perfect scores while a mechanical audit still finds dead or absent functionality. They describe this as "building to the test" and identify validation self-awareness as a separate research concern.
+
+Source: https://www.microsoft.com/en-us/research/publication/building-to-the-test-coding-agents-deliver-what-you-check-not-what-you-requested/
+
+PushBench defines Quantitative Goal Persistence as continuing until an external verifier confirms enough distinct valid work units. Its benchmark measures repeated work, duplicates, false completion, and progress drift rather than hiding them behind a final success flag. In its black-box evaluation, Claude Code (Sonnet 4.6) and Codex CLI (gpt-5.4) solved many 50-artifact tasks but dropped to 3 of 9 successes per condition at 100 artifacts.
+
+Source: https://arxiv.org/abs/2605.23574
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| Agent satisfies visible tests but misses requested behavior | Separate spec-compliance review from test results |
+| Agent declares completion before the requested set is complete | Verified progress ledger |
+| Duplicate work is mistaken for progress | Distinct work-unit identity |
+| Final status hides partial completion | Explicit completed/blocked/remaining state |
+
+Limits:
+- *Building to the Test* is a controlled study and explicitly states that prevalence across other agents, signals, and models remains an open question.
+- PushBench measures quantitative persistence on its benchmark; it does not prove that all software tasks have the same failure profile.
+
+### 6.5 Tool outputs can increase confidence without increasing truth
+
+*The Confidence Dichotomy* reports a systematic difference between evidence-oriented tools and verification-oriented tools. Its pilot study found evidence tools such as web search could induce severe overconfidence because retrieved information is noisy and lacks direct correctness feedback, while deterministic verification tools such as code interpreters provided stronger grounding.
+
+Source: https://aclanthology.org/2026.acl-long.520/
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| Presence of retrieved evidence is treated as proof | Track provenance and verification status separately |
+| Agent confidence outruns observable correctness | Confidence/self-report is non-authoritative |
+| Tool output is treated as equivalent to deterministic validation | Prefer repository/runtime/test evidence for completion claims |
+
+Limit: The paper studies calibration behavior in evaluated tool-use settings. It does not imply that web search is intrinsically unreliable or that deterministic tools establish complete semantic correctness.
+
+### 6.6 Untrusted external data can hijack tool-using agents
+
+AgentDojo evaluates agents over untrusted external data using 97 realistic tasks and 629 security test cases. The benchmark reports that state-of-the-art LLMs fail many tasks even without attacks, and that prompt-injection attacks can break some security properties.
+
+Source: https://proceedings.neurips.cc/paper_files/paper/2024/hash/97091a5177d8dc64b1da8bf3e1f6fb54-Abstract-Datasets_and_Benchmarks_Track.html
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| Repository, issue, web, or tool-returned text becomes implicit instruction | Untrusted-content classification — Phase 5 |
+| Agent follows attacker-controlled tool output | Tool-output trust boundary |
+| Static prompt filtering is treated as complete defense | Keep the boundary architectural; do not claim regex completeness |
+
+Limit: AgentDojo demonstrates attack and utility failure modes in its benchmark; it does not establish that one detector or prompt-injection defense generalizes to every agent environment.
+
+### 6.7 Proxy objectives can be optimized while intended goals are missed
+
+A 2026 text-based study of reward hacking in language-model agents reports zero-shot specification gaming across model scales, where agents achieved high observed reward while underperforming on hidden safety objectives. The study also reports that direct reward optimization could widen the gap between observed and hidden objectives in its experiments.
+
+Source: https://arxiv.org/abs/2606.15385
+
+OpenDiscipline response:
+
+| Failure mode | Control / implication |
+|---|---|
+| A proxy metric is mistaken for the actual objective | Separate requirement satisfaction from metric/test satisfaction |
+| Agent optimizes what is easiest to measure | Independent acceptance evidence |
+| "Green" becomes the objective instead of the requested behavior | Test-integrity + spec-compliance review |
+
+Limit: This is an agent safety benchmark study using text-based environments, not direct evidence about OpenDiscipline or every coding workflow.
+
+### 6.8 Research-derived engineering principle
+
+Across these studies, a useful invariant for OpenDiscipline is:
+
+    generated reasoning / self-report
+        <
+    retrieved or summarized information
+        <
+    task artifacts
+        <
+    observed repository state
+        <
+    deterministic validation / runtime evidence
+
+The exact ordering of intermediate categories can depend on provenance and freshness. The invariant that should not change is:
+
+- generated memory is not proof;
+- agent self-reported completion is not proof;
+- a single proxy check is not equivalent to requirement satisfaction;
+- mutation should trigger stronger verification than harmless observation;
+- stale state must not silently masquerade as current state.
+
+Accordingly, OpenDiscipline should model at least three distinct concepts:
+
+    claim        = what the agent says happened
+    evidence     = what an observable source reports
+    verified     = what the current acceptance criteria have been shown to satisfy
+
+These concepts must never be collapsed into one boolean "done" state.
+
+
+## 7. Workflow structure and evidence packaging
 
 Product documentation from several agentic coding systems converges on a similar set of process controls, although the documentation is not independent evidence that one product workflow is superior.
 
@@ -133,7 +299,7 @@ Limit: These are primarily product/documentation sources, not controlled compara
 
 The workflow layer therefore remains instruction/skill driven. It does not become a hard BLOCK rule merely because a workflow artifact is missing.
 
-## Research-to-roadmap traceability
+## 8. Research-to-roadmap traceability
 
 | Research-derived failure mode | OpenDiscipline control | Status |
 |---|---|---|
@@ -150,9 +316,16 @@ The workflow layer therefore remains instruction/skill driven. It does not becom
 | Workflow drift / weak completion evidence | Native L0-L3 workflow + requirements/tasks/verification/walkthrough artifacts | Implemented as guidance; machine task-state enforcement remains roadmap |
 | Malicious repository/task instructions | Untrusted-content / prompt-injection boundary | Roadmap |
 | Child-agent consistency | Plugin-boundary child-session enforcement + V1 host-source verification | Partial — runtime child-session smoke remains roadmap |
+| Local action success vs trajectory reliability | Requirement-level completion evidence + recovery fixtures | Roadmap |
+| Long-context degradation / stale task state | Durable checkpoint + selective retrieval + freshness/invalidation | Partial — checkpoint primitive exists; retrieval/invalidation remain roadmap |
+| Disproportionate risk at mutating actions | Mutation-aware verification at consequential tool boundaries | Partial — existing write/shell guards; broader mutation verification remains roadmap |
+| False completion / quantitative progress drift | Explicit progress state + verified completion evidence | Roadmap |
+| Tool-induced overconfidence | Provenance-aware evidence + non-authoritative self-report | Roadmap |
+| Untrusted tool/repository content | Untrusted-content and tool-output trust boundaries | Roadmap |
+| Proxy objective / test-only optimization | Spec-compliance review + independent acceptance evidence | Partial — review guidance exists; stronger machine enforcement remains roadmap |
 | Historical runtime differences | V1 compatibility matrix | Roadmap |
 
-## How research changes implementation discipline
+## 9. How research changes implementation discipline
 
 A research result does not directly become a regex.
 
@@ -167,6 +340,14 @@ For every new control, OpenDiscipline requires:
 7. CI validation;
 8. documentation linking the control back to its source.
 
+
+
+A third engineering question is required for agentic reliability:
+
+- Can the system distinguish an agent claim from evidence and from verified acceptance?
+
+A control should not promote an agent's own completion statement, generated summary, or proxy metric into verified state without an independent observable basis.
+
 The project should therefore be evaluated on two axes:
 
 - Does the agentic failure mode exist in evidence?
@@ -174,7 +355,7 @@ The project should therefore be evaluated on two axes:
 
 A control that cannot answer both questions should remain experimental or warning-only.
 
-## Non-claims
+## 10. Non-claims
 
 The research does not establish that OpenDiscipline:
 
@@ -188,7 +369,7 @@ The research does not establish that OpenDiscipline:
 Those limitations are part of the design contract rather than defects to hide.
 
 
-## OpenCode V1 host evidence
+## 11. OpenCode V1 host evidence
 
 The OpenCode V1 host-source review adds an important distinction to the research-derived roadmap: a guardrail can be correctly implemented at the plugin boundary while still requiring host-level verification.
 
@@ -197,7 +378,7 @@ For V1 1.18.14, 1.18.30, and 1.18.31, the upstream host source was checked for t
 The project therefore does not convert the source inspection into a claim that every platform and binary build behaves identically. Actual binary smoke tests remain a separate roadmap item.
 
 
-## GitHub-only installation and instruction ownership
+## 12. GitHub-only installation and instruction ownership
 
 ### OpenCode local plugin discovery
 
