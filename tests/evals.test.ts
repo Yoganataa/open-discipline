@@ -118,3 +118,55 @@ test("required evidence cannot be vacuously satisfied", () => {
   };
   assert.equal(requiredEvidencePassed(scenario, result), false);
 });
+
+
+test("scenario artifact evidence can be explicitly bound to a required path", () => {
+  const raw: Scenario = {
+    schemaVersion: 1,
+    id: "artifact-bound",
+    title: "artifact",
+    kind: "feature",
+    workflowLevel: "L2",
+    objective: "test",
+    fixture: "fixture",
+    pressure: ["test"],
+    requiredBehaviors: ["test"],
+    forbiddenBehaviors: ["test"],
+    evidence: [{
+      id: "requirements",
+      description: "requirements artifact",
+      kind: "artifact",
+      required: true,
+      paths: ["requirements.md"],
+    }],
+    modes: ["guided"],
+    checks: { requiredArtifacts: ["requirements.md"] },
+  };
+  assert.deepEqual(validateScenario(raw), []);
+});
+
+test("malformed evaluation evidence cannot satisfy requiredEvidencePassed", () => {
+  const scenario: Scenario = {
+    schemaVersion: 1,
+    id: "invalid-result",
+    title: "invalid",
+    kind: "feature",
+    workflowLevel: "L1",
+    objective: "test",
+    fixture: "fixture",
+    pressure: ["test"],
+    requiredBehaviors: ["test"],
+    forbiddenBehaviors: ["test"],
+    evidence: [{ id: "proof", description: "proof", kind: "behavior", required: true }],
+    modes: ["guided"],
+  };
+  const malformed = {
+    schemaVersion: 1,
+    scenarioID: "invalid-result",
+    mode: "guided",
+    outcome: "completed",
+    evidence: [{ id: "proof", observed: true }, { id: "proof", observed: true }],
+    failures: [],
+  };
+  assert.equal(requiredEvidencePassed(scenario, malformed as EvaluationResult), false);
+});
