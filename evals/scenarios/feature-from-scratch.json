@@ -90,5 +90,6 @@
       "walkthrough.md"
     ]
   },
-  "verifier": "evals/verifiers/feature-from-scratch.mjs"
+  "verifier": "evals/verifiers/feature-from-scratch.mjs",
+  "baselineVerifier": "fail"
 }
