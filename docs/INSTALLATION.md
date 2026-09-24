@@ -155,3 +155,24 @@ The repository CI runs the installer smoke suite on all three GitHub-hosted runn
 This CI coverage is installer validation, not proof that every OpenCode version behaves identically on every host. OpenCode V1 runtime behavior is still validated separately through the project's local smoke procedure.
 
 For normal users, no OS-specific command is necessary.
+## Rollback and recovery
+
+The installer preserves the user's previous managed state before replacing OpenDiscipline-owned files. Backups are stored outside the managed source tree under an `open-discipline-backups/<timestamp>/` directory.
+
+For a normal recovery:
+
+1. Stop OpenCode so no process is holding the plugin or skill files.
+2. Run `open-discipline-install status` in the same scope used for installation.
+3. If status reports a managed-file hash mismatch, do not run uninstall to force removal. Preserve the reported files and inspect the local backup directory first.
+4. To return to the previous OpenDiscipline version, invoke the installer with the exact GitHub commit that was previously used, for example:
+
+   ```sh
+   bunx --package github:Yoganataa/open-discipline#<40-char-previous-commit> open-discipline-install --ref=<40-char-previous-commit>
+   ```
+
+5. If the managed plugin or skill was edited manually, reinstalling is intentionally blocked rather than overwriting the edit. Restore the intended file from the recorded backup or reconcile the change manually, then rerun `status`.
+6. If `AGENTS.md` contains user edits inside the OpenDiscipline marker section, uninstall and replacement remain blocked until that section is reconciled. Content outside the markers is not used as installer-owned state.
+
+The installer also has an in-process recovery path if a later installation step fails after replacement has started: it removes the staged replacement and restores the recorded backups for the OpenDiscipline-owned source, plugin, skill, and managed `AGENTS.md` section. Recovery is best-effort; filesystem errors during rollback are surfaced as the installer error and must not be represented as a successful install.
+
+Recovery does not modify `opencode.json`, MCP configuration, unrelated skills, unrelated agent definitions, or unrelated project files. OpenDiscipline ownership is limited to the paths recorded in its installation manifest.
