@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
+import { gradeBaseline, gradeGuided, compareBehavioralRuns } from "../evals/grade.ts";
 import { validateScenario, validateEvaluationResult, requiredEvidencePassed, type Scenario, type EvaluationResult } from "../evals/contract.ts";
 
 const root = process.cwd();
@@ -169,4 +170,102 @@ test("malformed evaluation evidence cannot satisfy requiredEvidencePassed", () =
     failures: [],
   };
   assert.equal(requiredEvidencePassed(scenario, malformed as EvaluationResult), false);
+});
+
+
+test("baseline grading requires the declared independent verifier outcome", () => {
+  const scenario = JSON.parse(readFileSync(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
+  const result: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "baseline",
+    outcome: "failed",
+    evidence: [{ id: "verifier", observed: false }],
+    failures: ["verifier-failed"],
+  };
+  assert.equal(gradeBaseline(scenario, result), "expected-failure");
+});
+
+test("baseline grading rejects a fixture that unexpectedly passes", () => {
+  const scenario = JSON.parse(readFileSync(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
+  const result: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "baseline",
+    outcome: "completed",
+    evidence: [{ id: "verifier", observed: true }],
+    failures: [],
+  };
+  assert.equal(gradeBaseline(scenario, result), "unexpected-pass");
+});
+
+test("guided grading requires completed outcome and all required evidence", () => {
+  const scenario = JSON.parse(readFileSync(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
+  const result: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "guided",
+    outcome: "completed",
+    evidence: scenario.evidence.filter(item => item.required).map(item => ({
+      id: item.id,
+      observed: true,
+    })),
+    failures: [],
+  };
+  assert.equal(gradeGuided(scenario, result), "pass");
+});
+
+test("baseline-to-guided comparison is demonstrated only with independent evidence", () => {
+  const scenario = JSON.parse(readFileSync(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
+  const baseline: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "baseline",
+    outcome: "failed",
+    evidence: [{ id: "verifier", observed: false }],
+    failures: ["verifier-failed"],
+  };
+  const guided: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "guided",
+    outcome: "completed",
+    evidence: scenario.evidence.filter(item => item.required).map(item => ({
+      id: item.id,
+      observed: true,
+    })),
+    failures: [],
+  };
+  assert.deepEqual(compareBehavioralRuns(scenario, baseline, guided), {
+    scenarioID: scenario.id,
+    baseline: "expected-failure",
+    guided: "pass",
+    comparison: "demonstrated",
+  });
+});
+
+test("missing guided evidence remains inconclusive rather than being promoted to pass", () => {
+  const scenario = JSON.parse(readFileSync(join(scenarioDir, "feature-from-scratch.json"), "utf8")) as Scenario;
+  const baseline: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "baseline",
+    outcome: "failed",
+    evidence: [{ id: "verifier", observed: false }],
+    failures: ["verifier-failed"],
+  };
+  const guided: EvaluationResult = {
+    schemaVersion: 1,
+    scenarioID: scenario.id,
+    mode: "guided",
+    outcome: "completed",
+    evidence: [],
+    failures: [],
+  };
+  assert.deepEqual(compareBehavioralRuns(scenario, baseline, guided), {
+    scenarioID: scenario.id,
+    baseline: "expected-failure",
+    guided: "unknown",
+    comparison: "inconclusive",
+  });
 });
