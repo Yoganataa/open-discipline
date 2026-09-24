@@ -32,6 +32,7 @@ export interface Scenario {
 
 export interface ScenarioChecks {
   allowedChangedPaths?: string[];
+  requiredChangedPaths?: string[];
   forbiddenChangedPaths?: string[];
   requiredArtifacts?: string[];
   requiredFiles?: string[];
