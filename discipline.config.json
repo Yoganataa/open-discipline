@@ -1,12 +1,13 @@
 {
   "enabled": true,
   "mode": "strict",
-  "brands": ["YourBrand"],
+  "brands": [],
+  "autoBrands": true,
   "caseSensitive": false,
   "context": {
     "enabled": true,
     "includeOnSubsessions": false,
-    "maxCharacters": 5000
+    "maxCharacters": 3500
   },
   "allow": {
     "identifiers": [],
@@ -14,24 +15,87 @@
       "^[A-Za-z][A-Za-z0-9+.-]*://",
       "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){2,}$"
     ],
-    "paths": ["node_modules/**", "dist/**", "build/**", ".git/**", "vendor/**", "generated/**"],
-    "suffixes": ["SDK", "API", "CLI"]
+    "paths": [
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      ".git/**",
+      "vendor/**",
+      "generated/**"
+    ],
+    "suffixes": [
+      "SDK",
+      "API",
+      "CLI"
+    ]
   },
   "warn": {
     "patterns": [],
-    "ambiguousSuffixes": ["Client", "Manager", "Service", "Handler", "Helper", "Wrapper", "Adapter"]
+    "ambiguousSuffixes": [
+      "Client",
+      "Manager",
+      "Service",
+      "Handler",
+      "Helper",
+      "Wrapper",
+      "Adapter"
+    ]
   },
   "block": {
     "patterns": []
   },
-  "codeFileExtensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".py", ".kt"],
-  "ignoreExtensions": [".md", ".mdx", ".txt", ".json", ".jsonc", ".yml", ".yaml", ".lock"],
-  "qualifierSuggestions": {
-    "Settings": ["Account", "Server", "Device", "Application"],
-    "Client": ["Http", "Api", "Database", "Storage"],
-    "Manager": ["Session", "Connection", "Resource", "State"],
-    "Service": ["Payment", "Notification", "Auth", "Sync"]
-  },
   "protectedPaths": [],
-  "commandGuards": []
+  "commandGuards": [],
+  "readProtection": {
+    "enabled": true,
+    "paths": [
+      ".env",
+      ".env.*",
+      "**/.env",
+      "**/.env.*"
+    ],
+    "allowPaths": [
+      ".env.example",
+      ".env.sample",
+      ".env.template",
+      "**/.env.example",
+      "**/.env.sample",
+      "**/.env.template"
+    ]
+  },
+  "testIntegrity": {
+    "enabled": true,
+    "severity": "warn",
+    "paths": [
+      "tests/**",
+      "test/**",
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/__tests__/**"
+    ]
+  },
+  "testEvidence": {
+    "enabled": true,
+    "severity": "warn",
+    "paths": [
+      "tests/**",
+      "test/**",
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/__tests__/**"
+    ]
+  },
+  "changeSurface": {
+    "enabled": true,
+    "warnAt": 25,
+    "blockAt": 100
+  },
+  "architecture": {
+    "enabled": true,
+    "rules": []
+  },
+  "dependencyTruth": {
+    "enabled": true,
+    "severity": "warn"
+  }
 }

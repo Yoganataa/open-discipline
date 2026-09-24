@@ -1,0 +1,129 @@
+import { createHash } from "node:crypto";
+import { dirname, join, resolve, win32 } from "node:path";
+import { homedir } from "node:os";
+
+export const INSTALL_SCHEMA_VERSION = 1;
+export const AGENTS_START = "<!-- open-discipline:start -->";
+export const AGENTS_END = "<!-- open-discipline:end -->";
+
+export const AGENTS_SECTION = [
+  AGENTS_START,
+  "## OpenDiscipline",
+  "",
+  'Use the "open-discipline-workflow" skill for non-trivial implementation work.',
+  "",
+  "- Choose the smallest justified workflow level; do not add ceremony to trivial edits.",
+  "- For L2/L3 work, keep requirements, tasks, and verification evidence traceable.",
+  "- Never claim a test or validation passed without observed evidence.",
+  "- Never bypass or weaken an OpenDiscipline BLOCK; fix the cause or surface the conflict.",
+  "- Treat current repository source and observed runtime evidence as higher-trust than memory or summaries.",
+  "- This section supplements existing repository instructions; it does not replace or rewrite them.",
+  AGENTS_END,
+].join("\\n");
+
+function pathApi(platform) {
+  return platform === "win32" ? win32 : { resolve };
+}
+
+export function getOpenCodeConfigDir(env = process.env, platform = process.platform) {
+  const path = pathApi(platform);
+  if (env.OPENCODE_CONFIG_DIR) return path.resolve(env.OPENCODE_CONFIG_DIR);
+  if (platform !== "win32" && env.XDG_CONFIG_HOME) return path.resolve(env.XDG_CONFIG_HOME, "opencode");
+  return path.resolve(env.HOME ?? env.USERPROFILE ?? homedir(), ".config", "opencode");
+}
+
+export function getScopeRoot(scope, cwd = process.cwd()) {
+  return scope === "global" ? getOpenCodeConfigDir() : resolve(cwd, ".opencode");
+}
+export function getManagedRoot(scope, cwd = process.cwd()) {
+  return join(getScopeRoot(scope, cwd), "open-discipline");
+}
+export function getPluginPath(scope, cwd = process.cwd()) {
+  return join(getScopeRoot(scope, cwd), "plugins", "open-discipline.ts");
+}
+export function getSkillPath(scope, cwd = process.cwd()) {
+  return join(getScopeRoot(scope, cwd), "skills", "open-discipline-workflow", "SKILL.md");
+}
+export function getAgentsPath(scope, cwd = process.cwd()) {
+  return scope === "global" ? join(getScopeRoot(scope, cwd), "AGENTS.md") : resolve(cwd, "AGENTS.md");
+}
+
+export function mergeAgentsSection(original) {
+  const start = original.indexOf(AGENTS_START);
+  const end = original.indexOf(AGENTS_END);
+  if ((start === -1) !== (end === -1) || (start !== -1 && end < start)) {
+    throw new Error("AGENTS.md contains an incomplete or malformed OpenDiscipline section.");
+  }
+
+  const newline = original.includes("\r\n") ? "\r\n" : "\n";
+  const section = AGENTS_SECTION.replaceAll("\n", newline);
+
+  if (start !== -1 && end !== -1) {
+    const endExclusive = end + AGENTS_END.length;
+    const previousSection = original.slice(start, endExclusive);
+    return {
+      content: original.slice(0, start) + section + original.slice(endExclusive),
+      changed: previousSection !== section,
+      previousSection,
+      inserted: false,
+    };
+  }
+
+  const separator = original.length === 0 ? "" : original.endsWith(newline) ? newline : newline + newline;
+  return {
+    content: original + separator + section,
+    changed: true,
+    inserted: true,
+  };
+}
+
+export function removeAgentsSection(original, expectedSection) {
+  const start = original.indexOf(AGENTS_START);
+  const end = original.indexOf(AGENTS_END);
+
+  if (start === -1 && end === -1) {
+    return { content: original, changed: false, remainingOnlyWhitespace: original.trim().length === 0 };
+  }
+  if ((start === -1) !== (end === -1) || end < start) {
+    throw new Error("AGENTS.md contains an incomplete or malformed OpenDiscipline section.");
+  }
+
+  const endExclusive = end + AGENTS_END.length;
+  const currentSection = original.slice(start, endExclusive);
+  if (expectedSection && currentSection !== expectedSection) {
+    throw new Error(
+      "The OpenDiscipline AGENTS.md section was changed after installation. " +
+      "Refusing to overwrite user edits; inspect the section manually or use an explicit repair.",
+    );
+  }
+
+  const newline = original.includes("\r\n") ? "\r\n" : "\n";
+  let before = original.slice(0, start);
+  let after = original.slice(endExclusive);
+
+  if (before.endsWith(newline + newline)) before = before.slice(0, -2 * newline.length);
+  else if (before.endsWith(newline)) before = before.slice(0, -newline.length);
+
+  if (after.startsWith(newline)) after = after.slice(newline.length);
+
+  const separator = before && after ? newline + newline : "";
+  const content = before + separator + after;
+  return {
+    content,
+    changed: content !== original,
+    remainingOnlyWhitespace: content.trim().length === 0,
+  };
+}
+
+export function hashText(value) {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+export function managedMarkerPresent(value) {
+  return value.includes("open-discipline:managed");
+}
+export function managedSectionHash(value) {
+  return hashText(value.replaceAll("\r\n", "\n"));
+}
+export function getRelativeInstallSource(scriptFile) {
+  return resolve(dirname(scriptFile), "..");
+}

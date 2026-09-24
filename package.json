@@ -1,16 +1,23 @@
 {
-  "name": "open-disipline",
-  "version": "0.1.0",
+  "name": "open-discipline",
+  "version": "0.2.0",
   "private": true,
-  "description": "OpenCode V1 engineering-discipline plugin with context guidance and deterministic enforcement.",
+  "description": "OpenCode V1 engineering-discipline plugin with deterministic guardrails and low-noise agent context.",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
+  "bin": {
+    "open-discipline-install": "./scripts/install-opencode.mjs"
+  },
   "scripts": {
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval:validate": "node --experimental-strip-types --test tests/evals.test.ts",
+    "smoke:opencode": "node scripts/smoke-opencode.mjs",
+    "smoke:report": "node scripts/smoke-report.mjs",
+    "eval:behavior": "node --experimental-strip-types scripts/eval-behavior.mjs"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.18.30",

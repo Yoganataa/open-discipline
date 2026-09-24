@@ -9,7 +9,15 @@
     "esModuleInterop": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src", "tests"]
+  "include": [
+    "src",
+    "tests",
+    "scripts/installer-lib.d.mts",
+    "evals",
+    "scripts/eval-behavior.mjs"
+  ]
 }
