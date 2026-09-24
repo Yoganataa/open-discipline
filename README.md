@@ -1,239 +1,262 @@
-# open-discipline
+# OpenDiscipline
 
-A focused OpenCode V1 engineering-discipline plugin. It combines low-noise policy context with deterministic tool-boundary guardrails.
+OpenDiscipline is an OpenCode V1 engineering-discipline plugin for agent-driven software development. It combines concise workflow guidance with deterministic tool-boundary guardrails.
 
-The project is intentionally conservative: it prefers a useful warning over speculative blocking, and a small reliable rule over a large heuristic system.
+Its purpose is not to make an agent "smarter" by adding more instructions. Its purpose is to reduce recurring agent failure modes with observable evidence, conservative BLOCK/WARN decisions, validation, and explicit limits.
 
-## What it is designed to stop
+## Start here for a new agent session
 
-Agentic coding failures are often not syntax failures. The recurring problems are scope drift, test gaming, swallowed errors, secret leakage, unsafe reads, speculative refactors, repeated failed attempts, and declaring a task complete without sufficient evidence.
+This repository is intentionally split into an orientation layer and detailed evidence.
 
-OpenDiscipline treats these as engineering-control problems. It does not attempt to judge whether an entire implementation is semantically correct with regexes. Instead, it blocks or warns on observable evidence and requires stronger evidence as the project matures.
+1. Read this `README.md` to understand the project, current state, rules, and document map.
+2. Read `AGENTS.md`. It is the active repository-wide session policy.
+3. Read `ROADMAP.md` before selecting implementation work. It is the single source of truth for status and implementation order.
+4. Read `RESEARCH.md` before designing a new guardrail, workflow control, memory mechanism, or other research-derived behavior.
+5. Read only the detailed document relevant to the task. Do not load every Markdown file merely because it exists.
+6. For OpenCode V1 runtime/API work, read `COMPATIBILITY.md` and `docs/SMOKE-TEST.md`.
+7. Implement the smallest justified unfinished roadmap item unless the user explicitly changes scope.
+8. Do not claim completion from narration, generated memory, file existence, or a proxy/green check alone. Use observed evidence.
+9. Never weaken a test, bypass a BLOCK, or rewrite the guardrail to make the current task appear successful.
 
-## Guardrails
-
-| Rule | Purpose | Default |
-|---|---|---|
-| `naming` | Reject unnecessary product/company/project prefixes in internal identifiers | block/warn |
-| `slop:empty-catch` | Detect swallowed exceptions | block |
-| `slop:secret` | Detect common credential-shaped material | block in code, warn elsewhere |
-| `slop:debug-residue` | Detect common debug leftovers | warn |
-| `suppression` | Detect type-checker/linter/analyzer suppression across major language stacks | warn/block |
-| `slop:todo` | Detect TODO/FIXME/HACK markers added to code | warn |
-| `protected-files` | Protect explicitly configured paths | block |
-| `test-integrity` | Detect disabled, vacuous, deleted, or weakened test oracles | warn |
-| `test-evidence` | Flag behavior/code changes with no test-file change | warn |
-| `change-surface` | Keep a single tool operation from exploding into a large guarded file set | warn/block |
-| `dependency-truth` | Detect external imports that are not declared in the detected project manifest | warn |
-| `architecture` | Enforce explicit import boundaries configured per project | block/warn |
-| command guards | Optional repository-specific command regexes | opt-in |
-| protected reads | Protect `.env`-style reads at the tool boundary | enabled |
-| guardrail integrity | Prevent agent writes to the plugin's own rules/configuration | enabled |
-
-## Design
-
-OpenDiscipline has three complementary layers:
-
-1. Workflow guidance: native OpenCode skills teach the agent how to structure work without requiring a third-party methodology plugin.
-2. Context guidance: a short policy is injected into the first user message and is idempotent.
-3. Enforcement: deterministic checks run before consequential tool operations.
-
-The workflow layer is intentionally separate from enforcement. A workflow instruction can recommend a plan, task list, review, or walkthrough, but it cannot prove that an operation is safe. The enforcement layer remains authoritative at the tool boundary.
-
-See `docs/WORKFLOW.md` for Workflow v1 and `.opencode/skills/open-discipline-workflow/SKILL.md` for the native OpenCode skill.
-
-OpenCode host compatibility is validated separately from PR CI. Run the local smoke procedure in `docs/SMOKE-TEST.md` against the OpenCode installation you actually use, then send the generated report artifacts when runtime evidence is needed.
-
-The enforcement path is local and offline. It does not send source code, prompts, secrets, or telemetry to an external service.
-
-The important design rule is:
-
-> Instructions tell the agent what should happen. Tool-boundary enforcement controls what the agent is allowed to do.
-
-## Anti-bypass model
-
-OpenDiscipline does not treat an agent's proposed workaround as a valid fix.
-
-When a guard rejects a change, the intended response is to change the implementation so the evidence that triggered the guard disappears for a legitimate reason.
-
-The plugin also protects its own core implementation/configuration paths from normal agent write/edit/apply-patch operations:
-
-- `discipline.config.json`
-- `src/index.ts`
-- `src/config.ts`
-- `src/core/**`
-- `src/rules/**`
-- `src/scanners/**`
-- `.opencode/plugins/open-discipline.ts`
-
-This is deliberately stronger than asking the model not to modify the guard.
-
-This does not claim to be a perfect security boundary against every possible shell, host, subagent, or OpenCode implementation bypass. OpenCode hook behavior remains part of the trust boundary.
-
-## Fix correctly, not merely make the test green
-
-A green test suite is not treated as sufficient evidence by itself.
-
-The integrity layer detects several common ways an agent can manufacture green tests:
-
-- `.skip()`, `.only()`, `xit`, `xdescribe`, `@Ignore`, `@Disabled`, and similar test suppression;
-- vacuous assertions such as asserting `true`;
-- removal of existing assertion/oracle lines from patches;
-- deletion of test files;
-- code changes with no corresponding test-file change.
-
-The last item is a warning rather than an automatic failure because some legitimate implementation changes do not require new tests. The intended workflow is:
+The project deliberately separates authoritative status from explanatory material:
 
 ```text
-failure
-  -> identify behavior
-  -> change implementation
-  -> add/update regression coverage
-  -> run relevant validation
-  -> inspect scope
-  -> complete only with evidence
+README.md       -> orientation and document map
+AGENTS.md       -> active agent behavior/policy
+ROADMAP.md      -> canonical progress and next work
+RESEARCH.md     -> external evidence and failure-model basis
+COMPATIBILITY.md-> OpenCode V1 host/API evidence
+docs/*          -> detailed procedures and workflow contracts
+evals/*         -> deterministic behavioral evaluation
+src/*           -> implementation
+tests/*         -> automated verification
 ```
 
-OpenDiscipline cannot prove semantic correctness from source text alone. It deliberately reports this boundary instead of pretending that a regex can prove a bug is fixed.
+## Current project state
 
-## Agentic failure roadmap
+Branch: `maturity-hardening`
 
-This roadmap is part of the project. A feature is considered useful only when it reduces a recurring failure mode without creating disproportionate false positives.
+The repository is in the maturity-hardening stage. The guardrail foundation and most universal evidence/scope/workflow foundations are implemented, but the project is not complete.
 
-### Implemented
+Current roadmap state:
 
-- [x] Domain-first naming / anti-brand-slop
-- [x] Empty exception handling detection
-- [x] Credential-shaped secret detection
-- [x] Debug residue detection
-- [x] Cross-language suppression detection (TypeScript, Python, Kotlin/Java/Android, Go, Rust, C#/.NET, Dart, C/C++ and common linter directives)
-- [x] TODO/FIXME/HACK detection
-- [x] Protected file writes
-- [x] Protected `.env` reads at the tool boundary
-- [x] Test skip/focus detection
-- [x] Vacuous assertion detection
-- [x] Removed-test-oracle detection from patches
-- [x] Test-file deletion warning
-- [x] Regression-evidence warning for code changes without test changes
-- [x] Change-surface guard
-- [x] Guardrail self-protection
-- [x] Idempotent policy context
-- [x] Global + project configuration merging
-- [x] Command guard precompilation
+| Area | Status | Current meaning |
+|---|---|---|
+| Phase 0 — Guardrail foundation | [x] | Core deterministic guardrails are implemented and tested. |
+| Phase 0.5 — Safe GitHub-only installation | [~] | Installer/update/rollback work exists; immutable release default and real-host/runtime verification remain. |
+| Phase 1 — Evidence, scope, rule contracts | [~] | Universal contracts and scope ledger exist; failure-to-fix linkage still needs host evidence. |
+| Phase 1.5 — Agentic workflow | [~] | L0–L3 workflow and evidence contracts exist; it remains a partially complete maturity phase. |
+| Phase 1.6 — Context and memory | [~] | Checkpoint primitive and lifecycle foundations exist; checkpoint triggers, selective retrieval, freshness/invalidation, handoff packets, recovery fixtures, and benchmarking remain. |
+| Phase 2 — Ecosystem adapters | [~] | Several language baselines exist; ecosystem-specific truth remains. |
+| Phase 3 — Dependency/architecture truth | [~] | Core local/offline truth exists; workspace and abstraction-boundary work remains. |
+| Phase 4 — Agent trajectory controls | [~] | Validation repetition exists; meaningful progress, churn, failure-loop, and escalation controls remain. |
+| Phase 5 — Security/trust boundaries | [~] | Basic protections exist; untrusted-content and tool-output trust boundaries remain. |
+| Phase 6 — OpenCode V1 compatibility | [~] | Source/hook evidence exists; actual binary smoke remains required. |
+| Phase 7 — Quality/maintainability | [ ] | Corpus, performance, diagnostics, consistency checks, and broader CI work remain. |
 
-### Next priority
+The immediate roadmap sequence is Phase 1.6:
 
-The universal rule contract is now enforced by the rule registry. Every rule declares observable evidence, a legitimate-exception model, bypass analysis, and positive/negative/exception test requirements. Findings without observable evidence are suppressed and surfaced as a contract warning instead of being treated as reliable enforcement evidence.
-
-
-- [x] Completion-evidence warning: detect code changes that reach session idle without a validation command.
-- [x] Validation-repetition warning: detect repeated identical validation attempts; V1 does not expose a portable command exit code through `command.executed`, so this deliberately does not claim to prove failure.
-- [x] Dependency API/version truth: verify JavaScript imports against local installed metadata/resolution and package-lock manifest truth without network access.
-- [x] Dependency-change guard: flag newly introduced manifest dependencies for explicit necessity/API review.
-- [x] Scope/intent ledger: compare explicitly declared task paths with the actual changed surface; when no explicit path evidence exists, retain change-surface evidence instead of inferring intent.
-- [x] Session-local regression evidence ordering: warn when code changes occur before observable regression-test evidence; failure-to-fix linkage remains pending because OpenCode V1 does not expose a portable command exit status.
-- [x] Safer shell/destructive-command guard: block destructive Git/reset/force-push/bulk-delete operations and protect guardrail paths.
-- [x] Dependency-truth baseline: detect undeclared external imports for supported manifests.
-- [x] Configurable architecture boundaries: block explicitly denied imports in configured source layers.
-- [x] Plugin-boundary subagent enforcement verification: child sessions receive the same core `tool.execute.before` guardrails with isolated state.
-- [x] Source-verified compatibility matrix for OpenCode V1 1.18.14, 1.18.30, and 1.18.31; actual binary smoke remains pending.
-- [x] Workflow v1 specification: adaptive L0-L3 workflow with intent, requirements, design, plan, tasks, verification, review, and walkthrough contracts.
-- [x] Native OpenCode workflow skill: select the smallest justified workflow level and enforce evidence-oriented completion guidance.
-
-### Dependency truth is local-only
-
-The dependency evidence layer is deliberately offline. JavaScript dependencies use the local `package.json`, `package-lock.json`, Node module resolution, and installed package metadata when available. A declared dependency whose requested import cannot be resolved locally produces a warning rather than an invented API/version claim. New dependency declarations are also surfaced for review; the plugin does not decide that a package is unnecessary merely from source text.
-
-### Deliberately not planned
-
-- [ ] Full semantic code correctness through regexes.
-- [ ] Autonomous architecture judgement.
-- [ ] Blocking every TODO or every refactor.
-- [ ] Network-based source analysis in the enforcement hot path.
-- [ ] V2 lifecycle APIs in the V1 plugin.
-- [ ] A giant collection of heuristic rules with unclear false-positive behavior.
-
-## Agentic workflow
-
-OpenDiscipline does not require Superpowers, Kiro, Antigravity, or another third-party workflow package. It adopts selected workflow patterns as native project guidance.
-
-The workflow is adaptive:
-
-- L0: trivial change, no formal artifact required.
-- L1: small bounded change, concise intent/task plus validation.
-- L2: feature work, requirements + acceptance criteria, plan, tasks, verification, and walkthrough; design when material decisions exist.
-- L3: architectural/high-risk work, explicit design, per-task verification, two-stage review, and end-user verification where applicable.
-
-The lifecycle is:
-
-`intent -> requirements -> design (when needed) -> implementation plan -> tasks -> implement -> verify -> spec review -> code review -> end-user verification -> walkthrough`
-
-The design intentionally combines patterns documented by Superpowers, Kiro Specs, Antigravity, Claude Code, and Codex. These references support individual workflow components; OpenDiscipline does not claim that any one product's workflow is universally optimal.
-
-The evidence basis and limitations are recorded in `RESEARCH.md` and `docs/WORKFLOW.md`.
-
-## Runtime safety and evidence
-
-Completion evidence is intentionally conservative. OpenDiscipline observes validation commands and warns when code changes reach `session.idle` without a detected validation attempt. It does not claim that a command passed when the V1 event schema does not expose a portable exit code.
-
-The command guard blocks destructive Git operations, force-pushes, dangerous recursive deletion, bulk deletion, and shell writes targeting protected guardrail paths. Custom `commandGuards` remain available for repository-specific commands.
-
-Validation detection covers common ecosystems including npm/pnpm/yarn/bun, pytest/mypy/pyright/ruff, Go, Cargo, .NET, Gradle/Maven, Flutter/Dart, Swift/Xcode, and CMake/CTest.
-
-## OpenCode V1 compatibility
-
-The runtime design is capability-oriented, not intended to be locked to one exact V1 patch release.
-
-`@opencode-ai/plugin@1.18.30` is the development/typecheck baseline currently used by this repository. It is not intended to mean that the runtime requires exactly 1.18.30.
-
-Core enforcement relies on the V1 `tool.execute.before` boundary. Optional hooks such as context transformation and permission handling are supplementary; the plugin should remain useful if an optional hook is unavailable or behaves differently in a particular V1 host.
-
-The project is V1-only. Do not add V2 lifecycle APIs.
-
-The latest-stable smoke workflow is intended to verify the actual released V1 binary rather than treating SDK types or host-source inspection as runtime proof. Historical releases remain useful as regression references, not as the primary daily compatibility target.
-
-See `ROADMAP.md` for implementation status and `COMPATIBILITY.md` for the evidence-level compatibility matrix. The selected V1 releases have source-level evidence for the core hook and child TaskTool enforcement. Actual binary smoke is intentionally still marked pending; SDK types and host source are not treated as runtime proof.
-
-## Configuration
-
-Project configuration lives in `discipline.config.json`. A global configuration can be placed at `~/.config/opencode/discipline.config.json`.
-
-Project configuration is merged over global configuration, including nested sections.
-
-The naming rule can automatically derive a brand from `package.json`. Generic project names such as `app`, `server`, `project`, and `web` are ignored to avoid accidental false positives.
-
-Example:
-
-```json
-{
-  "mode": "strict",
-  "brands": ["Acme"],
-  "autoBrands": true,
-  "protectedPaths": ["src/generated/**"],
-  "testEvidence": {
-    "enabled": true,
-    "severity": "warn"
-  },
-  "changeSurface": {
-    "warnAt": 25,
-    "blockAt": 100
-  }
-}
+```text
+checkpoint triggers
+    -> selective retrieval
+    -> freshness / invalidation
+    -> subagent handoff packet
+    -> recovery fixtures
+    -> memory benchmark
 ```
 
-Use `advisory` mode during rollout when you want diagnostics without blocking writes. Note that guardrail integrity paths remain protected because disabling the policy from inside the guarded project would defeat the purpose of the integrity layer.
+Do not mark any of these complete merely because a function, schema, or document exists. The roadmap Definition of Done requires implementation, positive/negative/exception tests where applicable, documentation, CI, host evidence when required, research traceability, and evidence that does not overclaim.
 
-## Why the plugin is conservative
+## What problem OpenDiscipline addresses
 
-False positives destroy trust in a guardrail. OpenDiscipline therefore prefers:
+Agentic coding failures are often trajectory and evidence failures rather than syntax failures. The project targets recurring problems such as:
 
-- BLOCK when the evidence is strong and the operation is clearly unsafe;
-- WARN when context is ambiguous;
-- explicit configuration for legitimate exceptions;
-- small local checks instead of broad repository analysis;
-- evidence-based completion instead of claims of correctness.
+- scope drift;
+- speculative or oversized changes;
+- swallowed errors;
+- credential-shaped secret leakage;
+- unsafe sensitive-file reads;
+- destructive Git/shell operations;
+- test suppression or weakened test oracles;
+- changes without appropriate validation evidence;
+- repeated validation attempts without useful progress;
+- undeclared or locally unsupported dependencies;
+- invalid architecture-boundary crossings;
+- false completion and evidence overclaiming;
+- stale or mismatched task memory.
 
-## Development
+Research in `RESEARCH.md` documents the external evidence behind these failure modes. Research does not automatically justify a new regex or BLOCK rule.
+
+## Evidence model
+
+OpenDiscipline treats these as different things:
+
+```text
+claim       = what the agent says happened
+evidence    = what an observable source reports
+verified    = what the current acceptance criteria have actually been shown to satisfy
+```
+
+They must never be collapsed into one "done" flag.
+
+The trust model is approximately:
+
+```text
+agent narration / generated memory
+        <
+task artifacts
+        <
+current repository state
+        <
+observed validation / runtime evidence
+```
+
+The exact strength of evidence depends on provenance, freshness, and what requirement it actually tests.
+
+A green test is evidence about that test. It is not automatically proof that the requested feature is semantically complete.
+
+## Core architecture
+
+```text
+User intent
+    |
+    v
+Workflow guidance
+    |
+    v
+OpenDiscipline guardrail kernel
+    |
+    +--> BLOCK high-confidence invariant violations
+    +--> WARN ambiguous evidence
+    +--> preserve/require observable evidence
+    |
+    v
+OpenCode tools / filesystem / shell / tests / runtime
+```
+
+The central rule is:
+
+> Instructions tell the agent how the work should proceed. Tool-boundary enforcement controls consequential operations.
+
+The enforcement path is local and offline. It does not require a network service or telemetry.
+
+## Guardrails currently implemented
+
+The core rule families include:
+
+- domain-first naming discipline;
+- swallowed-exception detection;
+- credential-shaped secret detection;
+- debug-residue detection;
+- suppression detection across supported language ecosystems;
+- TODO/FIXME/HACK warnings;
+- protected-file writes;
+- protected sensitive reads;
+- test-integrity checks;
+- regression/test-evidence warnings;
+- change-surface control;
+- dependency truth and dependency-change review;
+- explicit architecture boundaries;
+- destructive Git/shell protection;
+- completion and validation-repetition evidence;
+- guardrail self-protection;
+- scope/intent ledger;
+- workflow L0–L3 guidance.
+
+Rules are intentionally narrow. BLOCK is reserved for strong observable evidence; ambiguous cases should normally WARN.
+
+## What agents must do
+
+For non-trivial work:
+
+- establish the user's actual objective before changing code;
+- use the smallest justified workflow level;
+- preserve requirement -> task -> verification traceability for L2/L3 work;
+- inspect current repository state instead of relying on stale memory;
+- make bounded changes;
+- validate continuously and record what was actually observed;
+- distinguish spec compliance from code quality;
+- review the final change against the requested behavior;
+- leave enough evidence for the next session or delegated agent to continue safely;
+- update roadmap status only when the Definition of Done is satisfied.
+
+For memory/context work, current source and observed validation outrank checkpoints.
+
+## What agents must not do
+
+Do not:
+
+- invent requirements;
+- treat generated summaries as repository truth;
+- claim a command passed when its result was not observed;
+- equate a successful tool call with task completion;
+- equate green tests with complete semantic correctness;
+- load the entire project history into every context;
+- silently broaden scope;
+- bypass a BLOCK;
+- weaken/delete tests to manufacture green;
+- add a new guard merely because a theoretical failure is imaginable;
+- add network calls to the enforcement hot path;
+- add undocumented OpenCode V2 lifecycle APIs to this V1 project;
+- mark roadmap work complete without its required evidence.
+
+## Workflow levels
+
+The workflow is adaptive rather than mandatory ceremony:
+
+- L0 — trivial documentation/formatting/bounded work; lightweight check when relevant.
+- L1 — small bounded bugfix/refactor; concise intent, bounded task, validation, completion evidence.
+- L2 — feature/multi-step work; requirements, acceptance criteria, plan, tasks, verification, walkthrough, and design when materially required.
+- L3 — architectural/high-risk work; explicit design, task decomposition, per-task verification, two-stage review, and end-user verification where applicable.
+
+The canonical lifecycle is:
+
+```text
+intent
+ -> requirements
+ -> design when materially required
+ -> plan
+ -> tasks
+ -> implement
+ -> verify
+ -> spec-compliance review
+ -> code-quality review
+ -> end-user verification
+ -> walkthrough / handoff
+```
+
+Use `docs/WORKFLOW.md` and `.opencode/skills/open-discipline-workflow/SKILL.md` for the detailed contracts.
+
+## Documentation map
+
+There are currently 12 Markdown documents. They have different purposes; they are not interchangeable.
+
+| Document | Purpose | Read when |
+|---|---|---|
+| `README.md` | Project orientation, current state, rules, and navigation | Every new session |
+| `AGENTS.md` | Active repository-wide agent policy | Every new session |
+| `ROADMAP.md` | Canonical implementation order, status, acceptance, Definition of Done | Before choosing work; before status changes |
+| `RESEARCH.md` | External research and failure-model traceability | Before new controls/designs; when validating rationale |
+| `COMPATIBILITY.md` | OpenCode V1 capability/source/runtime evidence | Runtime/API compatibility work |
+| `docs/INSTALLATION.md` | Installer ownership, update/uninstall, rollback/recovery | Installer work or recovery |
+| `docs/SMOKE-TEST.md` | Real OpenCode V1 runtime smoke procedure | Host/runtime verification |
+| `docs/WORKFLOW.md` | Detailed L0–L3 workflow and artifact contracts | Non-trivial workflow work |
+| `.opencode/skills/open-discipline-workflow/SKILL.md` | Native OpenCode workflow skill | When changing workflow behavior/skill |
+| `evals/README.md` | Behavioral evaluation architecture and runner contract | Evaluation work |
+| `evals/fixtures/README.md` | Fixture catalog and purpose | Evaluation fixture work |
+| `docs/work/README.md` | Durable workflow-artifact layout | L2/L3 work needing artifacts |
+
+The fixture-specific `evals/fixtures/trivial-doc/README.md` was intentionally removed because its two statements duplicated the fixture catalog and `trivial-doc.json` scenario contract. The executable scenario remains the authoritative evaluation definition.
+
+## Installation and runtime verification
+
+The installer is GitHub/Bun based rather than npm-published. See `docs/INSTALLATION.md`.
+
+Installation success is not runtime compatibility proof. OpenCode V1 binary behavior must be established through the smoke procedure in `docs/SMOKE-TEST.md`; SDK types and source inspection are not sufficient.
+
+## Development verification
+
+Use the repository's declared checks:
 
 ```sh
 npm install
@@ -241,50 +264,44 @@ npm test
 npm run typecheck
 ```
 
-The runtime plugin has no network service and no telemetry requirement.
+For runtime behavior, use the OpenCode V1 smoke procedure. For behavioral evaluation, use the `evals/` contracts and runner.
 
-## Adding a rule
+## Adding or changing a guard
 
-Add a `DisciplineRule` under `src/rules/`, keep it deterministic, register it in `src/index.ts`, and add both positive and negative tests.
+Before adding a rule, establish:
 
-A new rule should explain:
+1. documented failure mode and external evidence where applicable;
+2. observable evidence examined by the rule;
+3. why that evidence is reliable;
+4. BLOCK versus WARN semantics;
+5. false-positive expectations;
+6. legitimate exception/escape hatch;
+7. bypass analysis;
+8. positive, negative, and exception tests;
+9. CI and relevant host validation;
+10. documentation and research traceability.
 
-- evidence it examines;
-- why that evidence is reliable;
-- BLOCK versus WARN semantics;
-- false-positive expectations;
-- how legitimate exceptions are configured;
-- how an agent could otherwise bypass it;
-- what evidence demonstrates that the rule itself works.
+Do not turn a research finding directly into a regex.
 
-### Architecture configuration
+## Compatibility boundary
 
-Architecture enforcement is intentionally opt-in by rule. An empty rule list does nothing, so enabling the subsystem does not impose a framework on an unknown repository.
+OpenDiscipline targets OpenCode V1. The core enforcement boundary is `tool.execute.before`. Optional hooks are supplementary.
 
-Example:
+Do not add undocumented V2 lifecycle APIs. Do not claim runtime compatibility from SDK types or host-source inspection alone.
 
-```json
-{
-  "architecture": {
-    "enabled": true,
-    "rules": [
-      { "from": "src/ui/**", "denyImports": ["src/database/**", "@/database/**"] }
-    ]
-  }
-}
-```
+## Non-goals
 
-This is an explicit boundary, not an attempt to infer the project's architecture.
+OpenDiscipline does not attempt to:
 
-### Dependency truth
+- prove universal semantic correctness with regexes;
+- autonomously judge architecture;
+- block every TODO/refactor;
+- query dependency registries in the enforcement hot path;
+- provide a perfect prompt-injection defense;
+- dump full project history into every context;
+- treat generated memory as higher authority than source/runtime evidence;
+- make a green test suite equivalent to complete task correctness.
 
-The dependency rule compares imports in changed files with locally detected manifests such as `package.json`, Python requirement files, `go.mod`, `Cargo.toml`, and `pubspec.yaml`. It is a warning by default because import-to-package mappings and monorepo/workspace layouts can be ambiguous.
+## License
 
-It does not install packages, query a registry, or send source code to a service. It does not claim that an undeclared import is definitely nonexistent; it says the repository's dependency declaration does not currently prove that the dependency is declared.
-
-## Documentation
-
-- [Installation](docs/INSTALLATION.md) — GitHub-only Bun installer, AGENTS.md ownership, backups, and rollback boundaries.
-- [Roadmap](ROADMAP.md) — implementation order and acceptance criteria.
-- [Research](RESEARCH.md) — source-backed design evidence.
-- [Compatibility](COMPATIBILITY.md) — OpenCode V1 host evidence.
+See repository licensing files when present.
